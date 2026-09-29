@@ -10,7 +10,7 @@ const initialSubtaskForm = {
 
 function validateSubtask(formData) {
   const fields = {}
-  const estimatedHours = Number(formData.estimatedHours)
+  const estimatedHours = timeToHours(formData.estimatedHours)
 
   if (!formData.title.trim()) fields.title = 'Escribe el título de la subtarea.'
   if (!formData.targetDate) fields.targetDate = 'Selecciona la fecha objetivo.'
@@ -19,10 +19,17 @@ function validateSubtask(formData) {
     !Number.isFinite(estimatedHours) ||
     estimatedHours <= 0
   ) {
-    fields.estimatedHours = 'Ingresa un número mayor que 0.'
+    fields.estimatedHours = 'Selecciona una duración mayor que 00:00.'
   }
 
   return fields
+}
+
+function timeToHours(value) {
+  if (!value || !/^\d{2}:\d{2}$/.test(value)) return NaN
+
+  const [hours, minutes] = value.split(':').map(Number)
+  return hours + minutes / 60
 }
 
 export default function DetalleEvento() {
@@ -101,7 +108,7 @@ export default function DetalleEvento() {
       const createdSubtask = await createSubtask(id, {
         title: formData.title.trim(),
         targetDate: formData.targetDate,
-        estimatedHours: Number(formData.estimatedHours),
+        estimatedHours: timeToHours(formData.estimatedHours),
       })
 
       setSubtasks((current) => [...current, createdSubtask])
@@ -321,15 +328,14 @@ function SubtaskForm({
         </div>
 
         <div className="form-group">
-          <label htmlFor="estimatedHours">Horas estimadas *</label>
+          <label htmlFor="estimatedHours">Duración estimada (HH:mm) *</label>
           <input
             id="estimatedHours"
             name="estimatedHours"
-            type="number"
-            min="0.01"
-            step="0.25"
-            inputMode="decimal"
-            placeholder="Ej: 1.5"
+            type="time"
+            min="00:15"
+            max="23:45"
+            step="900"
             value={formData.estimatedHours}
             onChange={onChange}
             disabled={isSubmitting}
