@@ -1,7 +1,12 @@
 ﻿import { NavLink, useLocation } from 'react-router'
+import { clearSession } from '../auth'
 
 export default function Navigation() {
   const location = useLocation()
+
+  const handleLogout = () => {
+    clearSession()
+  }
 
   if (location.pathname === '/login') {
     return null
@@ -38,6 +43,7 @@ export default function Navigation() {
           to="/login" 
           className="nav-item nav-logout"
           title="Salir"
+          onClick={handleLogout}
         >
           <span className="nav-icon">🚪</span>
           <span className="nav-label">Salir</span>

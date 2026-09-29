@@ -77,6 +77,13 @@ export function createEvent(event, signal) {
   })
 }
 
+export function getTodayTasks(signal) {
+  return request('/api/tareas/hoy', {
+    expectedStatus: 200,
+    signal,
+  })
+}
+
 export function getEvent(id, signal) {
   return request(`/api/eventos/${encodeURIComponent(id)}`, {
     expectedStatus: 200,
