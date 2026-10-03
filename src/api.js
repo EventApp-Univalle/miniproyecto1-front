@@ -1,3 +1,5 @@
+import { getSession, expireSession } from './auth'
+
 const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 ).replace(/\/$/, '')
@@ -14,9 +16,17 @@ export class ApiError extends Error {
 
 async function request(path, { expectedStatus, ...options } = {}) {
   let response
+  const session = await getSession()
+  if (!session?.access_token) {
+    expireSession()
+    throw new ApiError('Inicia sesión para continuar.', { status: 401, code: 'AUTH_REQUIRED' })
+  }
 
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, options)
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers: { ...options.headers, Authorization: `Bearer ${session.access_token}` },
+    })
   } catch (error) {
     if (error.name === 'AbortError') {
       throw error
@@ -28,6 +38,13 @@ async function request(path, { expectedStatus, ...options } = {}) {
   }
 
   let data = null
+
+  if (response.status === 401) {
+    expireSession()
+    throw new ApiError('Tu sesión dejó de ser válida. Inicia sesión nuevamente.', {
+      status: 401, code: 'INVALID_TOKEN',
+    })
+  }
 
   try {
     data = await response.json()
@@ -77,8 +94,9 @@ export function createEvent(event, signal) {
   })
 }
 
-export function getTodayTasks(signal) {
-  return request('/api/tareas/hoy', {
+export function getTodayTasks(signal, eventId) {
+  const query = eventId ? `?eventId=${encodeURIComponent(eventId)}` : ''
+  return request(`/api/tareas/hoy${query}`, {
     expectedStatus: 200,
     signal,
   })

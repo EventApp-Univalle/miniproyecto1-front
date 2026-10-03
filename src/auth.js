@@ -1,20 +1,36 @@
-const SESSION_KEY = 'eventapp_session'
+import { createContext, useContext } from 'react'
+import { supabase, authConfigurationError } from './supabase'
 
-export function getSession() {
-  try {
-    return JSON.parse(localStorage.getItem(SESSION_KEY))
-  } catch {
-    return null
+export const AuthContext = createContext(null)
+export const SESSION_EXPIRED_EVENT = 'eventapp:session-expired'
+
+export function useAuth() {
+  return useContext(AuthContext)
+}
+
+export async function getSession() {
+  if (!supabase) throw new Error(authConfigurationError)
+  const { data, error } = await supabase.auth.getSession()
+  if (error) throw new Error('No pudimos recuperar tu sesión. Inicia sesión nuevamente.')
+  return data.session
+}
+
+export async function signIn(email, password) {
+  if (!supabase) throw new Error(authConfigurationError)
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error || !data.session) {
+    throw new Error('No pudimos iniciar sesión. Revisa tus credenciales e inténtalo nuevamente.')
   }
+  return data.session
 }
 
-export function startLocalSession(email) {
-  localStorage.setItem(
-    SESSION_KEY,
-    JSON.stringify({ email, startedAt: new Date().toISOString() })
-  )
+export async function clearSession() {
+  if (!supabase) return
+  const { error } = await supabase.auth.signOut({ scope: 'local' })
+  if (error) throw new Error('No pudimos cerrar tu sesión. Inténtalo nuevamente.')
 }
 
-export function clearSession() {
-  localStorage.removeItem(SESSION_KEY)
+export function expireSession() {
+  window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
+  void clearSession().catch(() => {})
 }
