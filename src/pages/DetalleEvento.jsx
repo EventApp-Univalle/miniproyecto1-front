@@ -1,35 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { createSubtask, getEvent, getSubtasks } from '../api'
+import { getBogotaDate, validateSubtask } from '../subtasks.utils'
 
 const initialSubtaskForm = {
   title: '',
   targetDate: '',
   estimatedHours: '',
-}
-
-function validateSubtask(formData) {
-  const fields = {}
-  const estimatedHours = timeToHours(formData.estimatedHours)
-
-  if (!formData.title.trim()) fields.title = 'Escribe el título de la subtarea.'
-  if (!formData.targetDate) fields.targetDate = 'Selecciona la fecha objetivo.'
-  if (
-    formData.estimatedHours === '' ||
-    !Number.isFinite(estimatedHours) ||
-    estimatedHours <= 0
-  ) {
-    fields.estimatedHours = 'Selecciona una duración mayor que 00:00.'
-  }
-
-  return fields
-}
-
-function timeToHours(value) {
-  if (!value || !/^\d{2}:\d{2}$/.test(value)) return NaN
-
-  const [hours, minutes] = value.split(':').map(Number)
-  return hours + minutes / 60
 }
 
 export default function DetalleEvento() {
@@ -94,7 +71,13 @@ export default function DetalleEvento() {
   const handleSubtaskSubmit = async (submitEvent) => {
     submitEvent.preventDefault()
 
-    const validationErrors = validateSubtask(formData)
+    if (isSubmitting || !event) return
+    const today = getBogotaDate()
+    if (event.date < today) {
+      setSubmitError('El evento ya pasó. No se pueden agregar nuevas subtareas.')
+      return
+    }
+    const validationErrors = validateSubtask(formData, event.date, today)
     if (Object.keys(validationErrors).length > 0) {
       setFieldErrors(validationErrors)
       return
@@ -108,7 +91,7 @@ export default function DetalleEvento() {
       const createdSubtask = await createSubtask(id, {
         title: formData.title.trim(),
         targetDate: formData.targetDate,
-        estimatedHours: timeToHours(formData.estimatedHours),
+        estimatedHours: Number(formData.estimatedHours),
       })
 
       setSubtasks((current) => [...current, createdSubtask])
@@ -215,6 +198,8 @@ export default function DetalleEvento() {
 
         <div className="plan-layout">
           <SubtaskForm
+            referenceDate={getBogotaDate()}
+            eventDate={event.date}
             formData={formData}
             fieldErrors={fieldErrors}
             submitError={submitError}
@@ -228,7 +213,9 @@ export default function DetalleEvento() {
               <div className="empty-state">
                 <span aria-hidden="true">📋</span>
                 <h3>Aún no hay subtareas</h3>
-                <p>Usa el formulario para comenzar el plan logístico.</p>
+                <p>{event.date < getBogotaDate()
+                  ? 'Este evento ya pasó y no tiene subtareas registradas.'
+                  : 'Usa el formulario para comenzar el plan logístico.'}</p>
               </div>
             ) : (
               subtasks.map((subtask) => (
@@ -260,7 +247,9 @@ function DetailItem({ icon, label, value }) {
   )
 }
 
-function SubtaskForm({
+export function SubtaskForm({
+  referenceDate,
+  eventDate,
   formData,
   fieldErrors,
   submitError,
@@ -268,6 +257,8 @@ function SubtaskForm({
   onChange,
   onSubmit,
 }) {
+  const eventHasPassed = eventDate < referenceDate
+  const disabled = isSubmitting || eventHasPassed
   const errorProps = (name, errorId) => ({
     'aria-invalid': Boolean(fieldErrors[name]),
     'aria-describedby': fieldErrors[name] ? errorId : undefined,
@@ -276,6 +267,7 @@ function SubtaskForm({
   return (
     <div className="subtask-form-card">
       <h3>Nueva subtarea</h3>
+      {eventHasPassed && <p role="status">El evento ya pasó. No se pueden agregar nuevas subtareas.</p>}
       <form
         onSubmit={onSubmit}
         className="minimal-form"
@@ -297,7 +289,7 @@ function SubtaskForm({
             placeholder="Ej: Confirmar sonido"
             value={formData.title}
             onChange={onChange}
-            disabled={isSubmitting}
+            disabled={disabled}
             required
             {...errorProps('title', 'subtask-title-error')}
           />
@@ -314,9 +306,11 @@ function SubtaskForm({
             id="targetDate"
             name="targetDate"
             type="date"
+            min={referenceDate}
+            max={eventDate}
             value={formData.targetDate}
             onChange={onChange}
-            disabled={isSubmitting}
+            disabled={disabled}
             required
             {...errorProps('targetDate', 'target-date-error')}
           />
@@ -328,17 +322,17 @@ function SubtaskForm({
         </div>
 
         <div className="form-group">
-          <label htmlFor="estimatedHours">Duración estimada (HH:mm) *</label>
+          <label htmlFor="estimatedHours">Horas estimadas *</label>
           <input
             id="estimatedHours"
             name="estimatedHours"
-            type="time"
-            min="00:15"
-            max="23:45"
-            step="900"
+            type="number"
+            min="0"
+            step="any"
+            placeholder="Ej: 1.5"
             value={formData.estimatedHours}
             onChange={onChange}
-            disabled={isSubmitting}
+            disabled={disabled}
             required
             {...errorProps('estimatedHours', 'estimated-hours-error')}
           />
@@ -349,7 +343,7 @@ function SubtaskForm({
           )}
         </div>
 
-        <button type="submit" className="btn-primary btn-block" disabled={isSubmitting}>
+        <button type="submit" className="btn-primary btn-block" disabled={disabled}>
           {isSubmitting ? 'Agregando…' : 'Agregar al plan'}
         </button>
       </form>

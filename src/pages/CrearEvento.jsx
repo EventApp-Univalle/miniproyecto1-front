@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { createEvent } from '../api'
+import { getBogotaDate } from '../subtasks.utils'
+import { validateEventForm } from '../events.utils'
 
 const initialForm = {
   title: '',
@@ -10,16 +12,6 @@ const initialForm = {
   location: '',
   description: '',
   isPriority: false,
-}
-
-function validateForm(formData) {
-  const fields = {}
-
-  if (!formData.title.trim()) fields.title = 'Escribe el nombre del evento.'
-  if (!formData.type.trim()) fields.type = 'Escribe el tipo de evento.'
-  if (!formData.date) fields.date = 'Selecciona la fecha del evento.'
-
-  return fields
 }
 
 export default function CrearEvento() {
@@ -43,7 +35,7 @@ export default function CrearEvento() {
   const handleSubmit = async (event) => {
     event.preventDefault()
 
-    const validationErrors = validateForm(formData)
+    const validationErrors = validateEventForm(formData)
     if (Object.keys(validationErrors).length > 0) {
       setFieldErrors(validationErrors)
       return
@@ -151,6 +143,7 @@ export default function CrearEvento() {
                 id="date"
                 name="date"
                 type="date"
+                min={getBogotaDate()}
                 value={formData.date}
                 onChange={handleChange}
                 disabled={isSubmitting}
