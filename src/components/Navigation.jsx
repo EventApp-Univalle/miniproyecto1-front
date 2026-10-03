@@ -22,7 +22,7 @@ export default function Navigation() {
     }
   }
 
-  if (location.pathname === '/login') {
+  if (['/login', '/registro'].includes(location.pathname)) {
     return null
   }
 

@@ -1,5 +1,5 @@
 ﻿import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { signIn, useAuth } from '../auth'
 
 export default function Login() {
@@ -84,6 +84,7 @@ export default function Login() {
           {error && <p role="alert" className="form-error">{error}</p>}
           {!error && authError && <p role="alert" className="form-error">{authError}</p>}
         </form>
+        <p className="auth-link">¿No tienes cuenta? <Link to="/registro">Crear cuenta</Link></p>
       </div>
     </div>
   )

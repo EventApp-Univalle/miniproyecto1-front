@@ -24,6 +24,22 @@ export async function signIn(email, password) {
   return data.session
 }
 
+export async function signUp(name, email, password) {
+  if (!supabase) throw new Error(authConfigurationError)
+  const message = 'No pudimos crear la cuenta. Revisa los datos o intenta iniciar sesión.'
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: { data: { name: name.trim() } },
+    })
+    if (error || !data?.user) throw new Error(message)
+    return { user: data.user, session: data.session }
+  } catch {
+    throw new Error(message)
+  }
+}
+
 export async function clearSession() {
   if (!supabase) return
   const { error } = await supabase.auth.signOut({ scope: 'local' })

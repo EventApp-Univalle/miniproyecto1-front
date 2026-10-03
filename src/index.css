@@ -665,6 +665,16 @@ button.nav-item { background: transparent; border: 0; font: inherit; cursor: poi
   color: var(--text-muted);
 }
 
+.auth-link {
+  margin-top: 20px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.auth-link a { color: #a5b4fc; }
+.auth-link a:focus-visible { outline: 2px solid #a5b4fc; outline-offset: 3px; }
+.auth-notice { margin-top: 14px; color: var(--text-sub); font-size: 0.88rem; }
+
 /* Formulario Crear Evento */
 .form-card-wrapper {
   background: var(--card-bg);
