@@ -1,24 +1,35 @@
 ﻿import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { startLocalSession } from '../auth'
+import { signIn, useAuth } from '../auth'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { authError } = useAuth()
   const navigate = useNavigate()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
+    if (isSubmitting) return
     setSubmitted(true)
+    setError('')
     if (!email.trim() || !password.trim()) {
       setError('Ingresa tu correo y contraseña para continuar.')
       return
     }
 
-    startLocalSession(email.trim())
-    navigate('/hoy')
+    setIsSubmitting(true)
+    try {
+      await signIn(email.trim(), password)
+      navigate('/hoy', { replace: true })
+    } catch (error) {
+      setError(error.message)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -36,6 +47,8 @@ export default function Login() {
             <input
               id="email"
               type="email"
+              autoComplete="username"
+              disabled={isSubmitting}
               placeholder="tu.correo@ejemplo.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -52,6 +65,8 @@ export default function Login() {
             <input
               id="password"
               type="password"
+              autoComplete="current-password"
+              disabled={isSubmitting}
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -63,15 +78,12 @@ export default function Login() {
             )}
           </div>
 
-          <button type="submit" className="btn-primary btn-block">
-            Iniciar sesión
+          <button type="submit" className="btn-primary btn-block" disabled={isSubmitting}>
+            {isSubmitting ? 'Iniciando sesión…' : 'Iniciar sesión'}
           </button>
           {error && <p role="alert" className="form-error">{error}</p>}
+          {!error && authError && <p role="alert" className="form-error">{authError}</p>}
         </form>
-
-        <p className="login-footer">
-          Frontend Lead
-        </p>
       </div>
     </div>
   )

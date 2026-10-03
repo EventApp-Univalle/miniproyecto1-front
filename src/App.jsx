@@ -1,5 +1,5 @@
 ﻿import { Routes, Route, Navigate } from 'react-router'
-import { getSession } from './auth'
+import { useAuth } from './auth'
 import Navigation from './components/Navigation'
 import Login from './pages/Login'
 import Hoy from './pages/Hoy'
@@ -9,7 +9,9 @@ import Progreso from './pages/Progreso'
 import './App.css'
 
 function ProtectedRoute({ children }) {
-  return getSession() ? children : <Navigate to="/login" replace />
+  const { session, loading } = useAuth()
+  if (loading) return <div className="page-state" role="status">Comprobando tu sesión…</div>
+  return session ? children : <Navigate to="/login" replace />
 }
 
 function App() {

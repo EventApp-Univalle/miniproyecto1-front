@@ -2,25 +2,12 @@
 import { Link } from 'react-router'
 import { getTodayTasks } from '../api'
 
-const priorityOrder = { Alta: 0, Media: 1, Baja: 2 }
-
-function getToday() {
-  const date = new Date()
-  date.setHours(12, 0, 0, 0)
-  return date.toISOString().slice(0, 10)
-}
-
 function formatTaskDate(date) {
-  return new Date(`${date}T12:00:00`).toLocaleDateString('es-ES', {
+  return new Date(`${date}T12:00:00Z`).toLocaleDateString('es-ES', {
+    timeZone: 'UTC',
     day: 'numeric',
     month: 'short',
   })
-}
-
-function sortTasks(firstTask, secondTask) {
-  return firstTask.date.localeCompare(secondTask.date)
-    || priorityOrder[firstTask.priority] - priorityOrder[secondTask.priority]
-    || firstTask.estimatedHours - secondTask.estimatedHours
 }
 
 function TaskCard({ task }) {
@@ -28,19 +15,15 @@ function TaskCard({ task }) {
     <article className="today-task-card">
       <div className="today-task-main">
         <div className="today-task-heading">
-          <span className={`priority-dot priority-${task.priority.toLowerCase()}`} />
           <h3>{task.title}</h3>
         </div>
         <p className="today-task-event">{task.eventTitle}</p>
         <div className="today-task-meta">
-          <span>📅 {formatTaskDate(task.date)}</span>
+          <span>📅 {formatTaskDate(task.targetDate)}</span>
           <span>⏱️ {task.estimatedHours} h</span>
         </div>
       </div>
       <div className="today-task-side">
-        <span className={`priority-label priority-label-${task.priority.toLowerCase()}`}>
-          {task.priority}
-        </span>
         <Link to={`/evento/${task.eventId}`} className="btn-detail">
           Ver evento →
         </Link>
@@ -50,13 +33,6 @@ function TaskCard({ task }) {
 }
 
 const TASKS_PER_PAGE = 5
-
-const PRIORITY_FILTERS = [
-  { value: 'all', label: 'Todas' },
-  { value: 'Alta', label: 'Alta' },
-  { value: 'Media', label: 'Media' },
-  { value: 'Baja', label: 'Baja' },
-]
 
 const DATE_FILTERS = [
   { value: 'all', label: 'Todas' },
@@ -136,77 +112,75 @@ function FilterGroup({ label, options, value, onChange }) {
 }
 
 export default function Hoy() {
-  const [tasks, setTasks] = useState([])
+  const [groups, setGroups] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
-  const [priorityFilter, setPriorityFilter] = useState('all')
+  const [eventFilter, setEventFilter] = useState('all')
+  const [eventOptions, setEventOptions] = useState([])
   const [dateFilter, setDateFilter] = useState('all')
+  const [retry, setRetry] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
-
     async function loadTasks() {
       setIsLoading(true)
       setLoadError('')
-
       try {
-        setTasks(await getTodayTasks(controller.signal))
+        const data = await getTodayTasks(controller.signal, eventFilter === 'all' ? undefined : eventFilter)
+        if (controller.signal.aborted) return
+        if (!data || typeof data.referenceDate !== 'string' ||
+            !['overdue', 'today', 'upcoming'].every(key => Array.isArray(data[key]))) {
+          throw new Error('No pudimos interpretar la lista de tareas. Inténtalo nuevamente.')
+        }
+        setGroups(data)
+        if (eventFilter === 'all') {
+          const events = new Map([...data.overdue, ...data.today, ...data.upcoming]
+            .map(task => [task.eventId, task.eventTitle]))
+          setEventOptions([...events].map(([value, label]) => ({ value, label })))
+        }
       } catch (error) {
-        if (error.name === 'AbortError') return
+        if (controller.signal.aborted || error.name === 'AbortError') return
         setLoadError(error.message)
       } finally {
         if (!controller.signal.aborted) setIsLoading(false)
       }
     }
-
     loadTasks()
     return () => controller.abort()
-  }, [])
+  }, [eventFilter, retry])
 
-  const today = getToday()
-  const sortedTasks = [...tasks].sort(sortTasks)
-
-  const filteredTasks = sortedTasks.filter((task) => {
-    if (priorityFilter !== 'all' && task.priority !== priorityFilter) return false
-    if (dateFilter === 'overdue' && task.date >= today) return false
-    if (dateFilter === 'today' && task.date !== today) return false
-    if (dateFilter === 'upcoming' && task.date <= today) return false
-    return true
-  })
-
-  const overdueTasks = filteredTasks.filter((task) => task.date < today)
-  const todayTasks = filteredTasks.filter((task) => task.date === today)
-  const upcomingTasks = filteredTasks.filter((task) => task.date > today)
-
-  const hasActiveFilters = priorityFilter !== 'all' || dateFilter !== 'all'
-
+  const overdueTasks = groups?.overdue ?? []
+  const todayTasks = groups?.today ?? []
+  const upcomingTasks = groups?.upcoming ?? []
+  const visibleSections = [
+    { key: 'overdue', title: 'Vencidas', tasks: overdueTasks },
+    { key: 'today', title: 'Para hoy', tasks: todayTasks },
+    { key: 'upcoming', title: 'Próximas', tasks: upcomingTasks },
+  ].filter(section => dateFilter === 'all' || section.key === dateFilter)
+  const totalCount = overdueTasks.length + todayTasks.length + upcomingTasks.length
+  const visibleCount = visibleSections.reduce((count, section) => count + section.tasks.length, 0)
+  const hasActiveFilters = eventFilter !== 'all' || dateFilter !== 'all'
   function clearFilters() {
-    setPriorityFilter('all')
+    setEventFilter('all')
     setDateFilter('all')
   }
 
-  if (isLoading) {
-    return (
-      <div className="page-state" role="status" aria-live="polite">
-        <span className="state-icon">⏳</span>
-        <h1>Cargando tus tareas</h1>
-        <p>Estamos organizando tus prioridades del día.</p>
-      </div>
-    )
-  }
-
-  if (loadError) {
-    return (
-      <div className="page-state" role="alert">
-        <span className="state-icon">⚠️</span>
-        <h1>No pudimos cargar tus tareas</h1>
-        <p>{loadError}</p>
-        <button type="button" className="btn-secondary" onClick={() => window.location.reload()}>
-          Intentar de nuevo
-        </button>
-      </div>
-    )
-  }
+  if (isLoading) return (
+    <div className="page-state" role="status" aria-live="polite">
+      <span className="state-icon">⏳</span>
+      <h1>Cargando tus tareas</h1>
+      <p>Estamos consultando tus subtareas.</p>
+    </div>
+  )
+  if (loadError) return (
+    <div className="page-state" role="alert">
+      <span className="state-icon">⚠️</span>
+      <h1>No pudimos cargar tus tareas</h1>
+      <p>{loadError}</p>
+      <button type="button" className="btn-secondary" onClick={() => setRetry(value => value + 1)}>Intentar de nuevo</button>
+      {hasActiveFilters && <button type="button" className="btn-secondary" onClick={clearFilters}>Limpiar filtros</button>}
+    </div>
+  )
 
   return (
     <div className="page-container">
@@ -216,48 +190,49 @@ export default function Hoy() {
           <h1 className="page-title">Hoy</h1>
           <p className="page-description">Prioriza lo que requiere tu atención</p>
         </div>
-        <div className="today-date-badge">
-          📅 {new Date().toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
-        </div>
+        <div className="today-date-badge">📅 {groups ? formatTaskDate(groups.referenceDate) : ''}</div>
       </header>
-
       <section className="today-priority-summary">
         <div>
-          <span className="today-summary-label">Prioridad del día</span>
+          <span className="today-summary-label">Atención del día</span>
           <strong>{overdueTasks.length + todayTasks.length} tareas requieren atención</strong>
         </div>
-        <span className="today-summary-count">{filteredTasks.length} de {tasks.length} tareas</span>
+        <span className="today-summary-count">{visibleCount} de {totalCount} tareas</span>
       </section>
-
+      <details className="today-order-help">
+        <summary>¿Cómo se ordena?</summary>
+        <p>Las subtareas se agrupan en Vencidas, Para hoy y Próximas según su fecha objetivo. Dentro de cada grupo se ordenan por fecha y, en caso de empate, primero se muestra la de menor esfuerzo estimado.</p>
+      </details>
       <section className="today-filters" aria-label="Filtros de tareas">
-        <FilterGroup
-          label="Prioridad"
-          options={PRIORITY_FILTERS}
-          value={priorityFilter}
-          onChange={setPriorityFilter}
-        />
-        <FilterGroup
-          label="Fecha"
-          options={DATE_FILTERS}
-          value={dateFilter}
-          onChange={setDateFilter}
-        />
-        {hasActiveFilters && (
-          <button type="button" className="filter-clear" onClick={clearFilters}>
-            Limpiar filtros
-          </button>
-        )}
+        <div className="filter-group">
+          <label className="filter-group-label" htmlFor="today-event-filter">Evento</label>
+          <select id="today-event-filter" value={eventFilter} onChange={event => setEventFilter(event.target.value)}>
+            <option value="all">Todos los eventos</option>
+            {eventOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </div>
+        <FilterGroup label="Fecha" options={DATE_FILTERS} value={dateFilter} onChange={setDateFilter} />
+        {hasActiveFilters && <button type="button" className="filter-clear" onClick={clearFilters}>Limpiar filtros</button>}
       </section>
-
-      {filteredTasks.length > 0 ? (
+      {visibleCount > 0 ? (
         <div className="today-task-sections">
-          <TaskSection title="Vencidas" tasks={overdueTasks} tone="overdue" />
-          <TaskSection title="Para hoy" tasks={todayTasks} tone="today" />
-          <TaskSection title="Próximas" tasks={upcomingTasks} tone="upcoming" />
+          {visibleSections.map(section => (
+            <TaskSection key={eventFilter + '-' + section.key} title={section.title} tasks={section.tasks} tone={section.key} />
+          ))}
         </div>
       ) : (
         <div className="today-empty-state today-empty-filtered" role="status">
-          No hay tareas que coincidan con los filtros seleccionados.
+          {hasActiveFilters ? (
+            <>
+              <p>No hay subtareas para los filtros seleccionados.</p>
+              <button type="button" className="btn-secondary" onClick={clearFilters}>Limpiar filtros</button>
+            </>
+          ) : (
+            <>
+              <p>Aún no tienes subtareas. Crea un evento y añade su plan de trabajo.</p>
+              <Link to="/crear" className="btn-secondary">Crear evento</Link>
+            </>
+          )}
         </div>
       )}
     </div>
