@@ -143,8 +143,8 @@ body {
 }
 
 .nav-container {
-  display: flex;
-  justify-content: space-around;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: center;
 }
 
@@ -156,7 +156,7 @@ body {
   color: var(--text-muted);
   font-size: 0.75rem;
   font-weight: 600;
-  padding: 6px 14px;
+  padding: 6px 2px;
   border-radius: 16px;
   transition: all 0.2s ease;
 }
@@ -209,7 +209,7 @@ body {
 /* Grid de Eventos */
 .events-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
   gap: 16px;
 }
 
@@ -237,6 +237,8 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .category-badge {
@@ -495,7 +497,7 @@ body {
 .today-order-help summary { cursor: pointer; }
 .today-order-help p { margin-top: 8px; line-height: 1.6; }
 .today-empty-state .btn-secondary { display: inline-block; margin-top: 12px; }
-button.nav-item { background: transparent; border: 0; font: inherit; cursor: pointer; }
+button.nav-item { background: transparent; border: 0; font-family: inherit; cursor: pointer; }
 
 /* Paginación de secciones */
 .pagination {

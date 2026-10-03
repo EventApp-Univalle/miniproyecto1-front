@@ -45,6 +45,14 @@ export default function Navigation() {
           <span className="nav-label">Crear</span>
         </NavLink>
 
+        <NavLink
+          to="/eventos"
+          className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
+        >
+          <span className="nav-icon">📋</span>
+          <span className="nav-label">Eventos</span>
+        </NavLink>
+
         <NavLink 
           to="/progreso" 
           className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}

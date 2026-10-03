@@ -109,6 +109,10 @@ export function getEvent(id, signal) {
   })
 }
 
+export function getEvents(signal) {
+  return request('/api/eventos', { expectedStatus: 200, signal })
+}
+
 export function getSubtasks(eventId, signal) {
   return request(
     `/api/eventos/${encodeURIComponent(eventId)}/subtareas`,
