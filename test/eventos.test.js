@@ -124,6 +124,23 @@ test('evento fechado hoy aún permite crear subtareas para hoy', () => {
   assert.doesNotMatch(html, /disabled=""|El evento ya pasó/)
 })
 
+test('crear y editar subtarea simultáneamente conservan IDs únicos y labels asociados', () => {
+  const props = {
+    referenceDate: '2026-10-03', eventDate: '2026-10-15',
+    formData: { title: '', targetDate: '', estimatedHours: '' },
+    fieldErrors: { title: 'Escribe un título.' }, submitError: '', isSubmitting: false,
+    onChange: () => {}, onSubmit: () => {},
+  }
+  const html = render(React.createElement(React.Fragment, null,
+    React.createElement(SubtaskForm, props),
+    React.createElement(SubtaskForm, { ...props, editing: true }),
+  ))
+  const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1])
+  assert.equal(new Set(ids).size, ids.length)
+  for (const match of html.matchAll(/\bfor="([^"]+)"/g)) assert.ok(ids.includes(match[1]))
+  assert.match(html, /aria-describedby="edit-subtask-title-error"/)
+})
+
 test('Crear evento fija min en hoy Bogotá incluso cuando UTC está en el día siguiente', (t) => {
   t.mock.timers.enable({ apis: ['Date'], now: Date.parse('2026-10-03T04:59:59Z') })
   const html = render(React.createElement(CrearEvento), '/crear')

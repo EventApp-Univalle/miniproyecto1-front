@@ -1,3 +1,4 @@
+import AuthLayout from '../components/AuthLayout'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { signUp } from '../auth'
@@ -63,13 +64,7 @@ export default function Registro() {
   }
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="brand-header">
-          <div className="brand-logo" aria-hidden="true">✨</div>
-          <h1 className="brand-title">EventApp</h1>
-          <p className="brand-subtitle">Crea tu cuenta para organizar tus eventos</p>
-        </div>
+    <AuthLayout title="Crea tu cuenta" description="Tu próximo evento empieza aquí">
         <form onSubmit={handleSubmit} className="login-form" noValidate aria-busy={isSubmitting}>
           {inputs.map(input => {
             const errorId = `register-${input.name}-error`
@@ -100,7 +95,6 @@ export default function Registro() {
           {notice && <p role="status" className="auth-notice">{notice}</p>}
         </form>
         <p className="auth-link">¿Ya tienes cuenta? <Link to="/login">Iniciar sesión</Link></p>
-      </div>
-    </div>
+    </AuthLayout>
   )
 }

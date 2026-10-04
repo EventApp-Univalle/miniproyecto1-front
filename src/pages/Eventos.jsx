@@ -1,3 +1,5 @@
+import Icon from '../components/Icon'
+import PageHeader from '../components/PageHeader'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { getEvents } from '../api'
@@ -31,7 +33,7 @@ export default function Eventos() {
 
   if (isLoading) return (
     <div className="page-state" role="status" aria-live="polite">
-      <span className="state-icon" aria-hidden="true">⏳</span>
+      <span className="state-icon" aria-hidden="true"><Icon name="loader" /></span>
       <h1>Cargando tus eventos</h1>
       <p>Estamos consultando tu listado de eventos.</p>
     </div>
@@ -39,7 +41,7 @@ export default function Eventos() {
 
   if (error) return (
     <div className="page-state" role="alert">
-      <span className="state-icon" aria-hidden="true">⚠️</span>
+      <span className="state-icon" aria-hidden="true"><Icon name="alert" /></span>
       <h1>No pudimos cargar tus eventos</h1>
       <p>{error}</p>
       <button type="button" className="btn-secondary" onClick={() => setRetry(value => value + 1)}>
@@ -54,20 +56,16 @@ export default function Eventos() {
 export function EventosContent({ events }) {
   return (
     <div className="page-container">
-      <header className="app-header">
-        <div>
-          <span className="app-badge">EventApp</span>
-          <h1 className="page-title">Eventos</h1>
-          <p className="page-description">Consulta tus eventos y abre su plan logístico.</p>
-        </div>
-      </header>
+      <PageHeader title="Eventos" description="Consulta tus eventos y abre su plan logístico." action={<Link to="/crear" className="btn-primary"><Icon name="plus" />Crear evento</Link>} />
       {events.length ? (
         <div className="events-grid">
           {events.map(event => <EventCard key={event.id} event={event} />)}
         </div>
       ) : (
         <div className="page-state" role="status">
+          <span className="state-icon"><Icon name="inbox" /></span>
           <h2>Aún no tienes eventos.</h2>
+          <p>Crea el primero y empieza a organizar su plan logístico.</p>
           <Link to="/crear" className="btn-secondary">Crear evento</Link>
         </div>
       )}

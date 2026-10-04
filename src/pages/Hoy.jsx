@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from 'react'
+import Icon from '../components/Icon'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { getTodayTasks } from '../api'
 
@@ -19,13 +20,13 @@ function TaskCard({ task }) {
         </div>
         <p className="today-task-event">{task.eventTitle}</p>
         <div className="today-task-meta">
-          <span>📅 {formatTaskDate(task.targetDate)}</span>
-          <span>⏱️ {task.estimatedHours} h</span>
+          <span><Icon name="calendar" /> {formatTaskDate(task.targetDate)}</span>
+          <span><Icon name="clock" /> {task.estimatedHours} h</span>
         </div>
       </div>
       <div className="today-task-side">
         <Link to={`/evento/${task.eventId}`} className="btn-detail">
-          Ver evento →
+          Ver evento <Icon name="arrow" />
         </Link>
       </div>
     </article>
@@ -84,7 +85,7 @@ function TaskSection({ title, tasks, tone }) {
           )}
         </>
       ) : (
-        <div className="today-empty-state">No hay tareas en esta sección.</div>
+        <div className="today-empty-state"><Icon name="check" /><span>No hay tareas en esta sección.</span></div>
       )}
     </section>
   )
@@ -166,15 +167,15 @@ export default function Hoy() {
   }
 
   if (isLoading) return (
-    <div className="page-state" role="status" aria-live="polite">
-      <span className="state-icon">⏳</span>
+    <div className="page-state today-state" role="status" aria-live="polite">
+      <span className="state-icon"><Icon name="loader" /></span>
       <h1>Cargando tus tareas</h1>
       <p>Estamos consultando tus subtareas.</p>
     </div>
   )
   if (loadError) return (
-    <div className="page-state" role="alert">
-      <span className="state-icon">⚠️</span>
+    <div className="page-state today-state" role="alert">
+      <span className="state-icon"><Icon name="alert" /></span>
       <h1>No pudimos cargar tus tareas</h1>
       <p>{loadError}</p>
       <button type="button" className="btn-secondary" onClick={() => setRetry(value => value + 1)}>Intentar de nuevo</button>
@@ -183,24 +184,25 @@ export default function Hoy() {
   )
 
   return (
-    <div className="page-container">
+    <div className="page-container today-page">
       <header className="app-header">
         <div>
-          <span className="app-badge">EventApp</span>
+          <span className="app-badge"><Icon name="brand" />EventApp</span>
           <h1 className="page-title">Hoy</h1>
           <p className="page-description">Prioriza lo que requiere tu atención</p>
         </div>
-        <div className="today-date-badge">📅 {groups ? formatTaskDate(groups.referenceDate) : ''}</div>
+        <div className="today-date-badge"><Icon name="calendar" /><div><span className="today-date-label">Fecha de referencia</span><span>{groups ? formatTaskDate(groups.referenceDate) : ''}</span></div></div>
       </header>
-      <section className="today-priority-summary">
+      <section className="today-priority-summary" aria-label="Resumen de tareas">
+        <div className="today-summary-art" aria-hidden="true"><Icon name="calendar" /><span><Icon name="check" /></span></div>
         <div>
           <span className="today-summary-label">Atención del día</span>
-          <strong>{overdueTasks.length + todayTasks.length} tareas requieren atención</strong>
+          <strong><span className="today-attention-count">{overdueTasks.length + todayTasks.length}</span><span>tareas requieren atención</span></strong>
         </div>
-        <span className="today-summary-count">{visibleCount} de {totalCount} tareas</span>
+        <span className="today-summary-count"><Icon name="events" /><span>{visibleCount} de {totalCount} tareas</span></span>
       </section>
       <details className="today-order-help">
-        <summary>¿Cómo se ordena?</summary>
+        <summary><Icon name="info" /><span>¿Cómo se ordena?</span><span className="help-chevron" aria-hidden="true">⌄</span></summary>
         <p>Las subtareas se agrupan en Vencidas, Para hoy y Próximas según su fecha objetivo. Dentro de cada grupo se ordenan por fecha y, en caso de empate, primero se muestra la de menor esfuerzo estimado.</p>
       </details>
       <section className="today-filters" aria-label="Filtros de tareas">
@@ -222,6 +224,7 @@ export default function Hoy() {
         </div>
       ) : (
         <div className="today-empty-state today-empty-filtered" role="status">
+          <span className="today-empty-icon"><Icon name="inbox" /></span>
           {hasActiveFilters ? (
             <>
               <p>No hay subtareas para los filtros seleccionados.</p>

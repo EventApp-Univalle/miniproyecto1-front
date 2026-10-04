@@ -1,3 +1,4 @@
+import Icon from '../components/Icon'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { createSubtask, getEvent, getSubtasks, updateEvent, updateSubtask } from '../api'
@@ -146,7 +147,7 @@ export default function DetalleEvento() {
   if (isLoading) {
     return (
       <div className="page-state" role="status" aria-live="polite">
-        <span className="state-icon">⏳</span>
+        <span className="state-icon"><Icon name="loader" /></span>
         <h1>Cargando evento…</h1>
         <p>Estamos recuperando el evento y su plan logístico.</p>
       </div>
@@ -156,7 +157,7 @@ export default function DetalleEvento() {
   if (notFound) {
     return (
       <div className="page-state">
-        <span className="state-icon">🔎</span>
+        <span className="state-icon"><Icon name="search" /></span>
         <h1>Evento no encontrado</h1>
         <p>El evento solicitado no existe o no está disponible.</p>
         <Link to="/crear" className="btn-secondary">Crear un evento</Link>
@@ -167,7 +168,7 @@ export default function DetalleEvento() {
   if (loadError) {
     return (
       <div className="page-state" role="alert">
-        <span className="state-icon">⚠️</span>
+        <span className="state-icon"><Icon name="alert" /></span>
         <h1>No pudimos cargar el evento</h1>
         <p>{loadError}</p>
         <button
@@ -184,16 +185,16 @@ export default function DetalleEvento() {
   return (
     <div className="page-container">
       <header className="app-header">
-        <Link to="/crear" className="btn-back">← Crear otro evento</Link>
+        <Link to="/crear" className="btn-back"><Icon name="plus" />Crear otro evento</Link>
       </header>
 
       {notice && (
         <div className="feedback-banner feedback-success" role="status" aria-live="polite">
-          {notice}
+          <Icon name="check" /><span>{notice}</span>
         </div>
       )}
 
-      {actionError && <div className="feedback-banner feedback-error" role="alert">{actionError}</div>}
+      {actionError && <div className="feedback-banner feedback-error" role="alert"><Icon name="alert" /><span>{actionError}</span></div>}
       <article className="event-detail-card">
         <div className="detail-header">
           <div className="detail-tags">
@@ -204,10 +205,10 @@ export default function DetalleEvento() {
         </div>
 
         <div className="detail-grid">
-          <DetailItem icon="🗓️" label="Fecha" value={event.date} />
-          <DetailItem icon="⏰" label="Hora" value={event.time || 'Sin hora'} />
+          <DetailItem icon="calendar" label="Fecha" value={event.date} />
+          <DetailItem icon="clock" label="Hora" value={event.time || 'Sin hora'} />
           <DetailItem
-            icon="📍"
+            icon="location"
             label="Ubicación"
             value={event.location || 'Sin ubicación'}
           />
@@ -252,7 +253,7 @@ export default function DetalleEvento() {
           <div className="subtask-list" aria-live="polite">
             {subtasks.length === 0 ? (
               <div className="empty-state">
-                <span aria-hidden="true">📋</span>
+                <span aria-hidden="true"><Icon name="inbox" /></span>
                 <h3>Aún no hay subtareas</h3>
                 <p>{event.date < getBogotaDate()
                   ? 'Este evento ya pasó y no tiene subtareas registradas.'
@@ -270,8 +271,8 @@ export default function DetalleEvento() {
                     }} /> : <>
                   <h3>{subtask.title}</h3>
                   <div className="subtask-meta">
-                    <span>🗓️ {subtask.targetDate}</span>
-                    <span>⏱️ {subtask.estimatedHours} h</span>
+                    <span><Icon name="calendar" /> {subtask.targetDate}</span>
+                    <span><Icon name="clock" /> {subtask.estimatedHours} h</span>
                   </div>
                   <SubtaskActions onEdit={() => { setEditingSubtask(subtask.id); setActionError(''); setNotice('') }}
                     onDelete={() => removeSubtask(subtask.id)} busy={Boolean(deleting) || editingEvent || Boolean(editingSubtask) || isSubmitting}
@@ -290,7 +291,7 @@ export default function DetalleEvento() {
 function DetailItem({ icon, label, value }) {
   return (
     <div className="detail-item">
-      <span className="detail-icon" aria-hidden="true">{icon}</span>
+      <span className="detail-icon" aria-hidden="true"><Icon name={icon} /></span>
       <div>
         <span className="detail-label">{label}</span>
         <p className="detail-value">{value}</p>
@@ -311,6 +312,7 @@ export function SubtaskForm({
   editing = false,
   onCancel,
 }) {
+  const fieldId = (name) => editing ? `edit-${name}` : name
   const eventHasPassed = !editing && eventDate < referenceDate
   const disabled = isSubmitting || eventHasPassed
   const errorProps = (name, errorId) => ({
@@ -319,7 +321,7 @@ export function SubtaskForm({
   })
 
   return (
-    <div className="subtask-form-card">
+    <div className={`subtask-form-card${editing ? ' subtask-editor' : ''}`}>
       <h3>{editing ? 'Editar subtarea' : 'Nueva subtarea'}</h3>
       {eventHasPassed && <p role="status">El evento ya pasó. No se pueden agregar nuevas subtareas.</p>}
       <form
@@ -330,14 +332,14 @@ export function SubtaskForm({
       >
         {submitError && (
           <div className="feedback-banner feedback-error" role="alert">
-            {submitError}
+            <Icon name="alert" /><span>{submitError}</span>
           </div>
         )}
 
         <div className="form-group">
-          <label htmlFor="subtask-title">Título *</label>
+          <label htmlFor={fieldId('subtask-title')}>Título *</label>
           <input
-            id="subtask-title"
+            id={fieldId('subtask-title')}
             name="title"
             type="text"
             placeholder="Ej: Confirmar sonido"
@@ -345,19 +347,19 @@ export function SubtaskForm({
             onChange={onChange}
             disabled={disabled}
             required
-            {...errorProps('title', 'subtask-title-error')}
+            {...errorProps('title', fieldId('subtask-title-error'))}
           />
           {fieldErrors.title && (
-            <span id="subtask-title-error" className="field-error">
+            <span id={fieldId('subtask-title-error')} className="field-error">
               {fieldErrors.title}
             </span>
           )}
         </div>
 
         <div className="form-group">
-          <label htmlFor="targetDate">Fecha objetivo *</label>
+          <label htmlFor={fieldId('targetDate')}>Fecha objetivo *</label>
           <input
-            id="targetDate"
+            id={fieldId('targetDate')}
             name="targetDate"
             type="date"
             min={referenceDate}
@@ -366,19 +368,19 @@ export function SubtaskForm({
             onChange={onChange}
             disabled={disabled}
             required
-            {...errorProps('targetDate', 'target-date-error')}
+            {...errorProps('targetDate', fieldId('target-date-error'))}
           />
           {fieldErrors.targetDate && (
-            <span id="target-date-error" className="field-error">
+            <span id={fieldId('target-date-error')} className="field-error">
               {fieldErrors.targetDate}
             </span>
           )}
         </div>
 
         <div className="form-group">
-          <label htmlFor="estimatedHours">Horas estimadas *</label>
+          <label htmlFor={fieldId('estimatedHours')}>Horas estimadas *</label>
           <input
-            id="estimatedHours"
+            id={fieldId('estimatedHours')}
             name="estimatedHours"
             type="number"
             min="0"
@@ -388,10 +390,10 @@ export function SubtaskForm({
             onChange={onChange}
             disabled={disabled}
             required
-            {...errorProps('estimatedHours', 'estimated-hours-error')}
+            {...errorProps('estimatedHours', fieldId('estimated-hours-error'))}
           />
           {fieldErrors.estimatedHours && (
-            <span id="estimated-hours-error" className="field-error">
+            <span id={fieldId('estimated-hours-error')} className="field-error">
               {fieldErrors.estimatedHours}
             </span>
           )}
@@ -408,14 +410,14 @@ export function SubtaskForm({
 
 export function EventActions({ onEdit, onDelete, busy, deleting }) {
   return <div className="crud-actions">
-    <button type="button" className="btn-secondary" disabled={busy} onClick={onEdit}>Editar evento</button>
-    <button type="button" className="btn-secondary" disabled={busy} onClick={onDelete}>{deleting ? 'Eliminando…' : 'Eliminar evento'}</button>
+    <button type="button" className="btn-secondary" disabled={busy} onClick={onEdit}><Icon name="edit" />Editar evento</button>
+    <button type="button" className="btn-danger" disabled={busy} onClick={onDelete}><Icon name="trash" />{deleting ? 'Eliminando…' : 'Eliminar evento'}</button>
   </div>
 }
 export function SubtaskActions({ onEdit, onDelete, busy, deleting }) {
   return <div className="crud-actions">
-    <button type="button" className="btn-secondary" disabled={busy} onClick={onEdit}>Editar</button>
-    <button type="button" className="btn-secondary" disabled={busy} onClick={onDelete}>{deleting ? 'Eliminando…' : 'Eliminar'}</button>
+    <button type="button" className="btn-secondary" disabled={busy} onClick={onEdit}><Icon name="edit" />Editar</button>
+    <button type="button" className="btn-danger" disabled={busy} onClick={onDelete}><Icon name="trash" />{deleting ? 'Eliminando…' : 'Eliminar'}</button>
   </div>
 }
 

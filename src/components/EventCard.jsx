@@ -1,4 +1,5 @@
-﻿import { Link } from 'react-router'
+import Icon from './Icon'
+import { Link } from 'react-router'
 
 export default function EventCard({ event }) {
   return (
@@ -10,18 +11,18 @@ export default function EventCard({ event }) {
       <h3 className="event-title">{event.title}</h3>
       <div className="event-info">
         <p className="event-detail">
-          <span className="icon">🗓️</span> {event.date}
+          <span className="icon"><Icon name="calendar" /></span> {event.date}
         </p>
         {event.time && <p className="event-detail">
-          <span className="icon">⏰</span> {event.time}
+          <span className="icon"><Icon name="clock" /></span> {event.time}
         </p>}
         {event.location && <p className="event-detail">
-          <span className="icon">📍</span> {event.location}
+          <span className="icon"><Icon name="location" /></span> {event.location}
         </p>}
       </div>
       <div className="event-card-footer">
         <Link to={`/evento/${event.id}`} className="btn-detail">
-          Ver evento →
+          Ver evento <Icon name="arrow" />
         </Link>
       </div>
     </article>

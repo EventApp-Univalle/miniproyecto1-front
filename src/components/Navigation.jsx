@@ -1,3 +1,4 @@
+import Icon from './Icon'
 import { useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router'
 import { clearSession } from '../auth'
@@ -27,13 +28,13 @@ export default function Navigation() {
   }
 
   return (
-    <nav className="bottom-nav">
+    <nav className="bottom-nav" aria-label="Navegación principal">
       <div className="nav-container">
         <NavLink 
           to="/hoy" 
           className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
         >
-          <span className="nav-icon">📅</span>
+          <span className="nav-icon"><Icon name="calendar" /></span>
           <span className="nav-label">Hoy</span>
         </NavLink>
 
@@ -41,7 +42,7 @@ export default function Navigation() {
           to="/crear" 
           className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
         >
-          <span className="nav-icon">➕</span>
+          <span className="nav-icon"><Icon name="plus" /></span>
           <span className="nav-label">Crear</span>
         </NavLink>
 
@@ -49,7 +50,7 @@ export default function Navigation() {
           to="/eventos"
           className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
         >
-          <span className="nav-icon">📋</span>
+          <span className="nav-icon"><Icon name="events" /></span>
           <span className="nav-label">Eventos</span>
         </NavLink>
 
@@ -57,7 +58,7 @@ export default function Navigation() {
           to="/progreso" 
           className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
         >
-          <span className="nav-icon">📊</span>
+          <span className="nav-icon"><Icon name="chart" /></span>
           <span className="nav-label">Progreso</span>
         </NavLink>
 
@@ -68,7 +69,7 @@ export default function Navigation() {
           onClick={handleLogout}
           disabled={isLoggingOut}
         >
-          <span className="nav-icon">🚪</span>
+          <span className="nav-icon"><Icon name="logout" /></span>
           <span className="nav-label">{isLoggingOut ? 'Saliendo…' : 'Salir'}</span>
         </button>
       </div>

@@ -30,7 +30,7 @@ export default function EventEditor({ event, onSave, onCancel }) {
     catch (err) { setError(err.message); if (err.fields) setFieldErrors(err.fields) }
     finally { sending.current = false; setBusy(false) }
   }
-  return <section aria-label="Editar evento"><h2>Editar evento</h2>
+  return <section className="event-editor" aria-label="Editar evento"><h2>Editar evento</h2>
     <EventForm formData={formData} fieldErrors={fieldErrors} submitError={error} isSubmitting={busy}
       onChange={change} onSubmit={submit} referenceDate={getBogotaDate()} submitLabel="Guardar cambios" onCancel={onCancel} />
   </section>

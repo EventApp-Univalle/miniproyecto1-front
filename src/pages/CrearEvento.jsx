@@ -1,3 +1,4 @@
+import PageHeader from '../components/PageHeader'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { createEvent } from '../api'
@@ -69,15 +70,7 @@ export default function CrearEvento() {
 
   return (
     <div className="page-container">
-      <header className="app-header">
-        <div>
-          <span className="app-badge">EventApp</span>
-          <h1 className="page-title">Crear evento</h1>
-          <p className="page-description">
-            Registra el evento y continúa con su plan logístico
-          </p>
-        </div>
-      </header>
+      <PageHeader title="Crear evento" description="Registra el evento y continúa con su plan logístico" />
 
       <EventForm formData={formData} fieldErrors={fieldErrors} submitError={submitError}
         isSubmitting={isSubmitting} onChange={handleChange} onSubmit={handleSubmit}
