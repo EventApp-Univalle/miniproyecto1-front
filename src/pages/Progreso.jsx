@@ -1,67 +1,74 @@
-﻿export default function Progreso() {
-  const stats = [
-    { label: 'Eventos Creados', value: '12', change: '+25% este mes', icon: '🎯' },
-    { label: 'Completados', value: '8', change: '66% de cumplimiento', icon: '✅' },
-    { label: 'En Agenda', value: '4', change: 'Próxima semana', icon: '📅' },
-    { label: 'Asistencia Promedio', value: '89%', change: 'Excelente participación', icon: '📈' }
-  ]
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router'
+import { getEvents, getTodayTasks } from '../api'
+import { summarizePlanning } from '../planning.utils'
+import PageHeader from '../components/PageHeader'
+import Icon from '../components/Icon'
 
-  const metrics = [
-    { title: 'Reuniones de Equipo', progress: 85, color: '#6366f1' },
-    { title: 'Talleres y Capacitaciones', progress: 60, color: '#10b981' },
-    { title: 'Presentaciones a Clientes', progress: 40, color: '#f59e0b' }
-  ]
+const hoursFormat = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 3 })
 
-  return (
-    <div className="page-container">
-      <header className="app-header">
-        <div>
-          <span className="app-badge">EventApp</span>
-          <h1 className="page-title">Progreso</h1>
-          <p className="page-description">Indicadores y métricas visuales del equipo</p>
-        </div>
-      </header>
+export default function Progreso() {
+  const [summary, setSummary] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [retry, setRetry] = useState(0)
 
-      <section className="stats-grid">
-        {stats.map((stat, idx) => (
-          <div key={idx} className="stat-card">
-            <div className="stat-card-header">
-              <span className="stat-icon">{stat.icon}</span>
-              <span className="stat-change">{stat.change}</span>
-            </div>
-            <h3 className="stat-value">{stat.value}</h3>
-            <p className="stat-label">{stat.label}</p>
-          </div>
-        ))}
-      </section>
+  useEffect(() => {
+    const controller = new AbortController()
+    async function loadSummary() {
+      setLoading(true)
+      setError('')
+      try {
+        const [events, today] = await Promise.all([
+          getEvents(controller.signal), getTodayTasks(controller.signal),
+        ])
+        if (!controller.signal.aborted) setSummary(summarizePlanning(events, today))
+      } catch (err) {
+        if (!controller.signal.aborted && err.name !== 'AbortError') setError(err.message)
+      } finally {
+        if (!controller.signal.aborted) setLoading(false)
+      }
+    }
+    loadSummary()
+    return () => controller.abort()
+  }, [retry])
 
-      <section className="section-container" style={{ marginTop: '24px' }}>
-        <div className="section-header">
-          <h2>Avance por Tipo de Evento</h2>
-        </div>
+  if (loading) return <div className="page-state" role="status" aria-live="polite">
+    <span className="state-icon"><Icon name="loader" /></span>
+    <h1>Cargando tu planificación</h1><p>Estamos consultando tus eventos y subtareas.</p>
+  </div>
+  if (error) return <div className="page-state" role="alert">
+    <span className="state-icon"><Icon name="alert" /></span>
+    <h1>No pudimos cargar el resumen</h1><p>{error}</p>
+    <button className="btn-primary" type="button" onClick={() => setRetry(value => value + 1)}>Intentar de nuevo</button>
+  </div>
 
-        <div className="progress-list">
-          {metrics.map((metric, idx) => (
-            <div key={idx} className="progress-item">
-              <div className="progress-info">
-                <span className="progress-title">{metric.title}</span>
-                <span className="progress-percentage">{metric.progress}%</span>
-              </div>
-              <div className="progress-bar-bg">
-                <div
-                  className="progress-bar-fill"
-                  style={{ width: `${metric.progress}%`, backgroundColor: metric.color }}
-                ></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <div className="info-box">
-        <span>💡</span>
-        <p>Esta pantalla muestra una maqueta visual del progreso. Próximamente se integrará con el backend de Karen para cargar métricas en tiempo real.</p>
-      </div>
+  return <div className="page-container planning-page">
+    <PageHeader title="Progreso" description="Una mirada clara a tu planificación actual." />
+    <div className="planning-heading"><span className="type-badge">Planificación actual</span><span>Fecha de referencia: {summary.referenceDate}</span></div>
+    <div className="planning-stats" aria-label="Resumen de planificación">
+      <SummaryCard icon="calendar" label="Eventos" value={summary.eventCount} description="Incluye eventos sin subtareas." />
+      <SummaryCard icon="events" label="Subtareas" value={summary.taskCount} description="En tu planificación actual." />
+      <SummaryCard icon="clock" label="Horas estimadas" value={`${hoursFormat.format(summary.estimatedHours)} h`} description="Suma de esas subtareas; no son horas ejecutadas." />
     </div>
-  )
+    {summary.taskCount > 0 ? <section className="planning-distribution" aria-labelledby="planning-title">
+      <div><span className="icon-tile"><Icon name="chart" /></span><h2 id="planning-title">Tu plan, por fecha</h2><p>Distribución de las subtareas según su fecha objetivo.</p></div>
+      <div className="planning-rows">
+        {summary.sections.map(section => <div key={section.key} className={`planning-row planning-row-${section.key}`}>
+          <div className="planning-row-label"><span>{section.label}</span><strong>{section.count} de {summary.taskCount}</strong></div>
+          <meter min="0" max={summary.taskCount} value={section.count} aria-label={`${section.label}: ${section.count} de ${summary.taskCount} subtareas`} />
+        </div>)}
+      </div>
+    </section> : <div className="page-state planning-empty" role="status">
+      <span className="state-icon"><Icon name="inbox" /></span>
+      <h2>{summary.eventCount ? 'Tu plan está por comenzar' : 'Empieza con tu primer evento'}</h2>
+      <p>{summary.eventCount ? 'Ya tienes eventos. Añade subtareas para ver su distribución aquí.' : 'Crea un evento y añade su plan logístico.'}</p>
+      <Link className="btn-primary" to={summary.eventCount ? '/eventos' : '/crear'}>{summary.eventCount ? 'Ver mis eventos' : 'Crear evento'}</Link>
+    </div>}
+    <div className="planning-note"><Icon name="info" /><p>Este resumen muestra planificación. Las métricas de ejecución estarán disponibles posteriormente.</p><Link to="/hoy">Ir a Hoy<Icon name="arrow" /></Link></div>
+  </div>
+}
+
+function SummaryCard({ icon, label, value, description }) {
+  return <div className="planning-stat"><span className="icon-tile"><Icon name={icon} /></span><p>{label}</p><strong>{value}</strong><span>{description}</span></div>
 }

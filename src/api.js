@@ -109,6 +109,10 @@ export function getEvent(id, signal) {
   })
 }
 
+export function getEvents(signal) {
+  return request('/api/eventos', { expectedStatus: 200, signal })
+}
+
 export function getSubtasks(eventId, signal) {
   return request(
     `/api/eventos/${encodeURIComponent(eventId)}/subtareas`,
@@ -127,4 +131,19 @@ export function createSubtask(eventId, subtask, signal) {
       expectedStatus: 201,
     }
   )
+}
+
+export function updateEvent(id, data) {
+  return request(`/api/eventos/${encodeURIComponent(id)}`, { ...jsonOptions('PATCH', data), expectedStatus: 200 })
+}
+export function deleteEvent(id) {
+  return request(`/api/eventos/${encodeURIComponent(id)}`, { method: 'DELETE', expectedStatus: 200 })
+}
+export function updateSubtask(eventId, subtaskId, data) {
+  return request(`/api/eventos/${encodeURIComponent(eventId)}/subtareas/${encodeURIComponent(subtaskId)}`,
+    { ...jsonOptions('PATCH', data), expectedStatus: 200 })
+}
+export function deleteSubtask(eventId, subtaskId) {
+  return request(`/api/eventos/${encodeURIComponent(eventId)}/subtareas/${encodeURIComponent(subtaskId)}`,
+    { method: 'DELETE', expectedStatus: 200 })
 }

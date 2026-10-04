@@ -1,28 +1,28 @@
-﻿import { Link } from 'react-router'
+import Icon from './Icon'
+import { Link } from 'react-router'
 
 export default function EventCard({ event }) {
   return (
     <article className="event-card">
       <div className="event-card-header">
-        <span className="category-badge">{event.category}</span>
-        <span className="status-badge">{event.status}</span>
+        <span className="type-badge">{event.type}</span>
+        {event.isPriority && <span className="priority-badge">Prioritario</span>}
       </div>
       <h3 className="event-title">{event.title}</h3>
       <div className="event-info">
         <p className="event-detail">
-          <span className="icon">🗓️</span> {event.date}
+          <span className="icon"><Icon name="calendar" /></span> {event.date}
         </p>
-        <p className="event-detail">
-          <span className="icon">⏰</span> {event.time}
-        </p>
-        <p className="event-detail">
-          <span className="icon">📍</span> {event.location}
-        </p>
+        {event.time && <p className="event-detail">
+          <span className="icon"><Icon name="clock" /></span> {event.time}
+        </p>}
+        {event.location && <p className="event-detail">
+          <span className="icon"><Icon name="location" /></span> {event.location}
+        </p>}
       </div>
       <div className="event-card-footer">
-        <span className="attendees">👥 {event.attendees} asistentes</span>
         <Link to={`/evento/${event.id}`} className="btn-detail">
-          Ver detalle →
+          Ver evento <Icon name="arrow" />
         </Link>
       </div>
     </article>

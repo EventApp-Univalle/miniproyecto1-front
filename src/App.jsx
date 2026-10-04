@@ -2,7 +2,9 @@
 import { useAuth } from './auth'
 import Navigation from './components/Navigation'
 import Login from './pages/Login'
+import Registro from './pages/Registro'
 import Hoy from './pages/Hoy'
+import Eventos from './pages/Eventos'
 import CrearEvento from './pages/CrearEvento'
 import DetalleEvento from './pages/DetalleEvento'
 import Progreso from './pages/Progreso'
@@ -21,8 +23,10 @@ function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/hoy" replace />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/registro" element={<Registro />} />
           <Route path="/hoy" element={<ProtectedRoute><Hoy /></ProtectedRoute>} />
           <Route path="/crear" element={<ProtectedRoute><CrearEvento /></ProtectedRoute>} />
+          <Route path="/eventos" element={<ProtectedRoute><Eventos /></ProtectedRoute>} />
           <Route path="/evento/:id" element={<ProtectedRoute><DetalleEvento /></ProtectedRoute>} />
           <Route path="/progreso" element={<ProtectedRoute><Progreso /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/hoy" replace />} />

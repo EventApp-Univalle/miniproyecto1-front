@@ -1,5 +1,6 @@
-﻿import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import AuthLayout from '../components/AuthLayout'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router'
 import { signIn, useAuth } from '../auth'
 
 export default function Login() {
@@ -33,14 +34,7 @@ export default function Login() {
   }
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="brand-header">
-          <div className="brand-logo">✨</div>
-          <h1 className="brand-title">EventApp</h1>
-          <p className="brand-subtitle">Organiza y gestiona tus eventos en un solo lugar</p>
-        </div>
-
+    <AuthLayout title="Bienvenido de nuevo" description="Organiza y gestiona tus eventos en un solo lugar">
         <form onSubmit={handleSubmit} className="login-form" noValidate>
           <div className="form-group">
             <label htmlFor="email">Correo electrónico</label>
@@ -84,7 +78,7 @@ export default function Login() {
           {error && <p role="alert" className="form-error">{error}</p>}
           {!error && authError && <p role="alert" className="form-error">{authError}</p>}
         </form>
-      </div>
-    </div>
+        <p className="auth-link">¿No tienes cuenta? <Link to="/registro">Crear cuenta</Link></p>
+    </AuthLayout>
   )
 }
