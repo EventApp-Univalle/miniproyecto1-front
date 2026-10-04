@@ -6,7 +6,7 @@ export function getBogotaDate(now = new Date()) {
   return `${values.year}-${values.month}-${values.day}`
 }
 
-export function validateSubtask(formData, eventDate, referenceDate = getBogotaDate()) {
+export function validateSubtask(formData, eventDate, referenceDate = getBogotaDate(), originalTargetDate) {
   const fields = {}
   const estimatedHours = Number(formData.estimatedHours)
   if (!formData.title.trim()) fields.title = 'Escribe el título de la subtarea.'
@@ -17,9 +17,9 @@ export function validateSubtask(formData, eventDate, referenceDate = getBogotaDa
     if (!/^\d{4}-\d{2}-\d{2}$/.test(formData.targetDate) ||
         !Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== formData.targetDate) {
       fields.targetDate = 'Selecciona una fecha objetivo válida.'
-    } else if (formData.targetDate < referenceDate) {
+    } else if (formData.targetDate !== originalTargetDate && formData.targetDate < referenceDate) {
       fields.targetDate = 'La fecha no puede ser anterior a hoy.'
-    } else if (formData.targetDate > eventDate) {
+    } else if (formData.targetDate !== originalTargetDate && formData.targetDate > eventDate) {
       fields.targetDate = 'La fecha no puede ser posterior a la fecha del evento.'
     }
   }
