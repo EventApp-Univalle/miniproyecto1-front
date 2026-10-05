@@ -4,6 +4,7 @@ import { getEvents, getTodayTasks } from '../api'
 import { summarizePlanning } from '../planning.utils'
 import PageHeader from '../components/PageHeader'
 import Icon from '../components/Icon'
+import CapacityPanel from '../components/CapacityPanel'
 
 const hoursFormat = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 3 })
 
@@ -33,18 +34,19 @@ export default function Progreso() {
     return () => controller.abort()
   }, [retry])
 
-  if (loading) return <div className="page-state" role="status" aria-live="polite">
-    <span className="state-icon"><Icon name="loader" /></span>
-    <h1>Cargando tu planificación</h1><p>Estamos consultando tus eventos y subtareas.</p>
-  </div>
-  if (error) return <div className="page-state" role="alert">
-    <span className="state-icon"><Icon name="alert" /></span>
-    <h1>No pudimos cargar el resumen</h1><p>{error}</p>
-    <button className="btn-primary" type="button" onClick={() => setRetry(value => value + 1)}>Intentar de nuevo</button>
-  </div>
-
   return <div className="page-container planning-page">
     <PageHeader title="Progreso" description="Una mirada clara a tu planificación actual." />
+    {/* Integration point: after confirming GET/PATCH, supply real capacity,
+        loading/error and callbacks here. Unavailable is not a null capacity. */}
+    <CapacityPanel available={false} />
+    {loading ? <div className="page-state" role="status" aria-live="polite">
+      <span className="state-icon"><Icon name="loader" /></span>
+      <h2>Cargando tu planificación</h2><p>Estamos consultando tus eventos y subtareas.</p>
+    </div> : error ? <div className="page-state" role="alert">
+      <span className="state-icon"><Icon name="alert" /></span>
+      <h2>No pudimos cargar el resumen</h2><p>{error}</p>
+      <button className="btn-primary" type="button" onClick={() => setRetry(value => value + 1)}>Intentar de nuevo</button>
+    </div> : summary && <>
     <div className="planning-heading"><span className="type-badge">Planificación actual</span><span>Fecha de referencia: {summary.referenceDate}</span></div>
     <div className="planning-stats" aria-label="Resumen de planificación">
       <SummaryCard icon="calendar" label="Eventos" value={summary.eventCount} description="Incluye eventos sin subtareas." />
@@ -66,6 +68,7 @@ export default function Progreso() {
       <Link className="btn-primary" to={summary.eventCount ? '/eventos' : '/crear'}>{summary.eventCount ? 'Ver mis eventos' : 'Crear evento'}</Link>
     </div>}
     <div className="planning-note"><Icon name="info" /><p>Este resumen muestra planificación. Las métricas de ejecución estarán disponibles posteriormente.</p><Link to="/hoy">Ir a Hoy<Icon name="arrow" /></Link></div>
+    </>}
   </div>
 }
 

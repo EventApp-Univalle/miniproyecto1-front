@@ -226,6 +226,40 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .auth-link a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 650; }
 
 /* Honest planning summary. Meter bars count tasks, never completed work. */
+.capacity-panel { min-width: 0; margin-bottom: var(--space-6); padding: var(--space-6); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
+.capacity-heading { display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-6); }
+.capacity-heading > div { min-width: 0; }
+.capacity-heading h2 { font-size: 20px; letter-spacing: -.025em; }
+.capacity-heading p, .capacity-value-row p, .capacity-unavailable p { margin-top: 4px; font-size: 14px; color: var(--text-muted); }
+.capacity-value-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); padding: var(--space-4); background: var(--surface-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.capacity-value-row > div { min-width: 0; }
+.capacity-value { display: block; font-size: 26px; letter-spacing: -.035em; overflow-wrap: anywhere; }
+.capacity-not-set { font-size: 19px; }
+.capacity-value-row button { flex-shrink: 0; }
+.capacity-status { display: flex; align-items: center; gap: var(--space-3); color: var(--text-muted); font-size: 14px; }
+.capacity-status .ui-icon { color: var(--primary); }
+.capacity-unavailable { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); }
+.capacity-unavailable p { margin: 0; }
+.capacity-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--space-4) var(--space-6); padding: var(--space-4); background: var(--surface-secondary); border-radius: var(--radius-sm); }
+.capacity-form .form-group { max-width: 460px; }
+.capacity-input-row { display: flex; align-items: center; gap: var(--space-3); }
+.capacity-input-row > span { flex-shrink: 0; color: var(--text-muted); font-size: 14px; }
+.capacity-help { color: var(--text-muted); font-size: 13px; }
+.capacity-actions { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+.capacity-form > .feedback-banner { grid-column: 1 / -1; margin: 0; }
+.capacity-panel > .feedback-success { margin-top: var(--space-4); margin-bottom: 0; }
+@media (max-width: 768px) {
+  .capacity-form { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 540px) {
+  .capacity-panel { padding: var(--space-4); }
+  .capacity-heading { align-items: flex-start; gap: var(--space-3); }
+  .capacity-heading h2 { font-size: 19px; }
+  .capacity-value-row { flex-direction: column; align-items: stretch; gap: var(--space-4); }
+  .capacity-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+  .capacity-actions button { min-width: 0; padding-inline: 12px; }
+}
+
 .planning-heading { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-4); font-size: 13px; color: var(--text-muted); }
 .planning-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6); }
 .planning-stat { min-width: 0; padding: var(--space-6); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-sm); }
