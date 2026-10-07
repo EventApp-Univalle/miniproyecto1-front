@@ -5,12 +5,13 @@ const API_BASE_URL = (
 ).replace(/\/$/, '')
 
 export class ApiError extends Error {
-  constructor(message, { status = 0, code = 'NETWORK_ERROR', fields } = {}) {
+  constructor(message, { status = 0, code = 'NETWORK_ERROR', fields, details } = {}) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.code = code
     this.fields = fields
+    this.details = details
   }
 }
 
@@ -62,6 +63,7 @@ async function request(path, { expectedStatus, ...options } = {}) {
         status: response.status,
         code: data?.error?.code || 'API_ERROR',
         fields: data?.error?.fields,
+        details: data?.error?.details,
       }
     )
   }
