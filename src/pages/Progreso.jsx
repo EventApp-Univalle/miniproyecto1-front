@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
-import { getEvents, getTodayTasks } from '../api'
+import { getEvents, getTodayTasks, getDailyCapacity, updateDailyCapacity } from '../api'
+import { requireDailyCapacity } from '../capacity.utils'
 import { summarizePlanning } from '../planning.utils'
 import PageHeader from '../components/PageHeader'
 import Icon from '../components/Icon'
@@ -13,6 +14,45 @@ export default function Progreso() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
+
+  const [capacity, setCapacity] = useState(null)
+  const [capacityLoading, setCapacityLoading] = useState(true)
+  const [capacityError, setCapacityError] = useState('')
+  const [capacitySaving, setCapacitySaving] = useState(false)
+  const [capacityRetry, setCapacityRetry] = useState(0)
+  const saveController = useRef(null)
+
+  useEffect(() => () => saveController.current?.abort(), [])
+  useEffect(() => {
+    const controller = new AbortController()
+    async function loadCapacity() {
+      setCapacityLoading(true)
+      setCapacityError('')
+      try {
+        const result = requireDailyCapacity(await getDailyCapacity(controller.signal))
+        if (!controller.signal.aborted) setCapacity(result)
+      } catch (err) {
+        if (!controller.signal.aborted && err.name !== 'AbortError') setCapacityError('No pudimos consultar tu capacidad.')
+      } finally {
+        if (!controller.signal.aborted) setCapacityLoading(false)
+      }
+    }
+    loadCapacity()
+    return () => controller.abort()
+  }, [capacityRetry])
+
+  async function saveCapacity(hours) {
+    const controller = new AbortController()
+    saveController.current = controller
+    setCapacitySaving(true)
+    try {
+      const result = requireDailyCapacity(await updateDailyCapacity(hours, controller.signal))
+      if (!controller.signal.aborted) setCapacity(result)
+      return result
+    } finally {
+      if (!controller.signal.aborted) setCapacitySaving(false)
+    }
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -34,18 +74,25 @@ export default function Progreso() {
     return () => controller.abort()
   }, [retry])
 
+  return <ProgresoContent summary={summary} loading={loading} error={error}
+    onRetry={() => setRetry(value => value + 1)} capacity={capacity} capacityLoading={capacityLoading}
+    capacityError={capacityError} capacitySaving={capacitySaving} onSave={saveCapacity}
+    onCapacityRetry={() => setCapacityRetry(value => value + 1)} />
+}
+
+export function ProgresoContent({ summary, loading, error, onRetry, capacity,
+  capacityLoading, capacityError, capacitySaving, onSave, onCapacityRetry }) {
   return <div className="page-container planning-page">
     <PageHeader title="Progreso" description="Una mirada clara a tu planificación actual." />
-    {/* Integration point: after confirming GET/PATCH, supply real capacity,
-        loading/error and callbacks here. Unavailable is not a null capacity. */}
-    <CapacityPanel available={false} />
+    <CapacityPanel capacity={capacity} loading={capacityLoading} error={capacityError}
+      saving={capacitySaving} onSave={onSave} onRetry={onCapacityRetry} />
     {loading ? <div className="page-state" role="status" aria-live="polite">
       <span className="state-icon"><Icon name="loader" /></span>
       <h2>Cargando tu planificación</h2><p>Estamos consultando tus eventos y subtareas.</p>
     </div> : error ? <div className="page-state" role="alert">
       <span className="state-icon"><Icon name="alert" /></span>
       <h2>No pudimos cargar el resumen</h2><p>{error}</p>
-      <button className="btn-primary" type="button" onClick={() => setRetry(value => value + 1)}>Intentar de nuevo</button>
+      <button className="btn-primary" type="button" onClick={onRetry}>Intentar de nuevo</button>
     </div> : summary && <>
     <div className="planning-heading"><span className="type-badge">Planificación actual</span><span>Fecha de referencia: {summary.referenceDate}</span></div>
     <div className="planning-stats" aria-label="Resumen de planificación">

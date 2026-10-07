@@ -10,12 +10,12 @@ export default function CapacityForm({ value, fieldError = '', saveError = '', s
     <div className="form-group">
       <label htmlFor={inputId}>Horas disponibles por día</label>
       <div className="capacity-input-row">
-        <input id={inputId} type="number" inputMode="decimal" min="0" step="any" required
+        <input id={inputId} type="number" inputMode="decimal" min="1" max="24" step="any" required
           value={value} onChange={event => onChange(event.target.value)} disabled={saving}
           aria-invalid={Boolean(fieldError)} aria-describedby={`${helpId}${fieldError ? ` ${errorId}` : ''}`} />
         <span aria-hidden="true">h/día</span>
       </div>
-      <small id={helpId} className="capacity-help">Puedes usar decimales. Se aplica a todos tus eventos.</small>
+      <small id={helpId} className="capacity-help">Entre 1 y 24 horas; puedes usar decimales. Se aplica a todos tus eventos.</small>
       {fieldError && <p id={errorId} className="field-error" role="alert">{fieldError}</p>}
     </div>
     {saveError && <p className="feedback-banner feedback-error" role="alert">{saveError}</p>}
