@@ -1,12 +1,12 @@
 import { useEffect, useId, useReducer, useRef } from 'react'
-import { capacityEditorReducer, capacityEditorState, saveDailyCapacity, validateDailyCapacity } from '../capacity.utils'
+import { capacityEditorReducer, capacityEditorState, saveDailyCapacity, validateDailyCapacity, requireDailyCapacity } from '../capacity.utils'
 import CapacityForm from './CapacityForm'
 import Icon from './Icon'
 
-// Data-source adapter: onSave(hours) resolves to the confirmed number.
+// Data-source adapter: onSave(hours) resolves to the complete confirmed response.
 // No requests, defaults or fixtures are built into this reusable component.
 export default function CapacityPanel({ capacity, loading = false, error = '', saving = false,
-  available = true, onSave, onRetry }) {
+  onSave, onRetry }) {
   const titleId = `capacity-title-${useId()}`
   const [state, dispatch] = useReducer(capacityEditorReducer, capacity, capacityEditorState)
   const sending = useRef(false)
@@ -14,14 +14,14 @@ export default function CapacityPanel({ capacity, loading = false, error = '', s
   useEffect(() => { active.current = true; return () => { active.current = false } }, [])
   useEffect(() => { dispatch({ type: 'source', value: capacity }) }, [capacity])
   const busy = saving || state.saving
-  const validSource = state.confirmed === null ||
-    (typeof state.confirmed === 'number' && !validateDailyCapacity(state.confirmed).error)
+  let validSource = false
+  try { requireDailyCapacity(state.confirmed); validSource = true } catch { /* Missing data is not a default. */ }
   const draft = validateDailyCapacity(state.draft)
-  const unchanged = !draft.error && draft.value === state.confirmed
+  const unchanged = !draft.error && draft.value === state.confirmed?.dailyLimitHours && !state.confirmed?.isDefault
 
   async function submit(event) {
     event.preventDefault()
-    if (busy || sending.current || unchanged || !onSave || !available || loading || error) return
+    if (busy || sending.current || unchanged || !onSave || loading || error) return
     if (draft.error) { dispatch({ type: 'validation', error: draft.error }); return }
     dispatch({ type: 'saving' })
     const result = await saveDailyCapacity(state.draft, onSave, sending)
@@ -31,11 +31,7 @@ export default function CapacityPanel({ capacity, loading = false, error = '', s
   }
 
   let content
-  if (!available) content = <div className="capacity-unavailable" role="status">
-    <span className="type-badge">Próximamente</span>
-    <p>La configuración del límite diario aún no está disponible.</p>
-  </div>
-  else if (loading) content = <p className="capacity-status" role="status"><Icon name="loader" />Consultando tu capacidad diaria…</p>
+  if (loading) content = <p className="capacity-status" role="status"><Icon name="loader" />Consultando tu capacidad diaria…</p>
   else if (error || !validSource) content = <div className="capacity-load-error">
     <p className="feedback-banner feedback-error" role="alert"><Icon name="alert" />No pudimos consultar tu capacidad.</p>
     <button type="button" className="btn-secondary" onClick={onRetry} disabled={!onRetry || busy}>Reintentar</button>
@@ -45,12 +41,13 @@ export default function CapacityPanel({ capacity, loading = false, error = '', s
     onChange={value => dispatch({ type: 'change', value })} onSubmit={submit}
     onCancel={() => { if (!busy && !sending.current) dispatch({ type: 'cancel' }) }} />
   else content = <div className="capacity-value-row">
-    <div><strong className={`capacity-value${state.confirmed === null ? ' capacity-not-set' : ''}`}>
-      {state.confirmed === null ? 'Sin configurar' : `${state.confirmed} h/día`}
-    </strong><p>{state.confirmed === null ? 'Define tu límite diario antes de reprogramar tareas.' : 'Se aplica a todos tus eventos.'}</p></div>
-    <button type="button" className={state.confirmed === null ? 'btn-primary' : 'btn-secondary'}
+    <div><span className="type-badge">{state.confirmed.isDefault ? 'Predeterminado' : 'Personalizado'}</span>
+      <strong className="capacity-value">{state.confirmed.dailyLimitHours} h/día</strong>
+      <p>{state.confirmed.isDefault ? 'Este es tu límite predeterminado. Puedes personalizarlo.' : 'Se aplica a todos tus eventos.'}</p>
+    </div>
+    <button type="button" className={state.confirmed.isDefault ? 'btn-primary' : 'btn-secondary'}
       onClick={() => dispatch({ type: 'edit' })} disabled={busy || !onSave}>
-      {state.confirmed === null ? 'Configurar capacidad' : 'Editar'}
+      {state.confirmed.isDefault ? 'Personalizar' : 'Editar'}
     </button>
   </div>
 
@@ -59,7 +56,7 @@ export default function CapacityPanel({ capacity, loading = false, error = '', s
       <div><h2 id={titleId}>Capacidad diaria</h2><p>Define cuántas horas puedes dedicar cada día, entre todos tus eventos.</p></div>
     </div>
     {content}
-    {available && !loading && !error && validSource && state.notice && <CapacitySaveNotice />}
+    {!loading && !error && validSource && state.notice && <CapacitySaveNotice />}
   </section>
 }
 

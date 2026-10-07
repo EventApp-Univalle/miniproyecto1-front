@@ -147,3 +147,13 @@ export function deleteSubtask(eventId, subtaskId) {
   return request(`/api/eventos/${encodeURIComponent(eventId)}/subtareas/${encodeURIComponent(subtaskId)}`,
     { method: 'DELETE', expectedStatus: 200 })
 }
+
+export function getDailyCapacity(signal) {
+  return request('/api/configuracion/capacidad', { expectedStatus: 200, signal })
+}
+
+export function updateDailyCapacity(dailyLimitHours, signal) {
+  return request('/api/configuracion/capacidad', {
+    ...jsonOptions('PATCH', { dailyLimitHours }, signal), expectedStatus: 200,
+  })
+}

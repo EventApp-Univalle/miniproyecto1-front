@@ -1,4 +1,4 @@
-const invalidMessage = 'Ingresa un número de horas mayor que 0.'
+const invalidMessage = 'Ingresa un número de horas entre 1 y 24.'
 
 export function validateDailyCapacity(value) {
   if (value === null || value === undefined || (typeof value === 'string' && !value.trim())) {
@@ -10,12 +10,25 @@ export function validateDailyCapacity(value) {
   }
   const hours = Number(value)
   if (!Number.isFinite(hours)) return { error: invalidMessage, reason: 'not-finite' }
-  if (hours <= 0) return { error: invalidMessage, reason: 'not-positive' }
+  if (hours < 1 || hours > 24) return { error: invalidMessage, reason: 'out-of-range' }
   return { value: hours, error: '', reason: null }
 }
 
+// Validate the complete response; never substitute a local default for missing data.
+export function requireDailyCapacity(capacity) {
+  if (!capacity || typeof capacity.dailyLimitHours !== 'number' ||
+      validateDailyCapacity(capacity.dailyLimitHours).error ||
+      typeof capacity.defaultDailyLimitHours !== 'number' ||
+      validateDailyCapacity(capacity.defaultDailyLimitHours).error ||
+      typeof capacity.isDefault !== 'boolean' ||
+      (capacity.isDefault && capacity.dailyLimitHours !== capacity.defaultDailyLimitHours)) {
+    throw new Error('Respuesta de capacidad inesperada.')
+  }
+  return capacity
+}
+
 export function capacityEditorState(capacity) {
-  return { confirmed: capacity, draft: capacity == null ? '' : String(capacity),
+  return { confirmed: capacity, draft: capacity ? String(capacity.dailyLimitHours) : '',
     editing: false, saving: false, fieldError: '', saveError: '', notice: '' }
 }
 
@@ -33,7 +46,7 @@ export function capacityEditorReducer(state, action) {
   }
 }
 
-// onSave must resolve to a confirmed numeric value from the data source.
+// onSave must resolve to the complete confirmed response from the backend.
 // This helper never treats the submitted draft as a persisted response.
 export async function saveDailyCapacity(value, onSave, lock) {
   if (lock.current) return { status: 'blocked' }
@@ -42,10 +55,10 @@ export async function saveDailyCapacity(value, onSave, lock) {
   lock.current = true
   try {
     const confirmed = await onSave(validation.value)
-    if (typeof confirmed !== 'number' || validateDailyCapacity(confirmed).error) throw new Error('Invalid capacity response')
+    requireDailyCapacity(confirmed)
     return { status: 'saved', value: confirmed }
-  } catch {
-    return { status: 'failed', error: 'No pudimos guardar tu capacidad. Intenta nuevamente.' }
+  } catch (error) {
+    return { status: 'failed', error: error?.status === 400 ? 'No pudimos guardar tu capacidad. Revisa que las horas estén entre 1 y 24 e intenta nuevamente.' : 'No pudimos guardar tu capacidad. Intenta nuevamente.' }
   } finally {
     lock.current = false
   }
