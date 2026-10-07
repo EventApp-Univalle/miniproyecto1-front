@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { createSubtask, getEvent, getSubtasks, updateEvent, updateSubtask } from '../api'
 import { getBogotaDate, validateSubtask } from '../subtasks.utils'
+import CapacityConflictDialog from '../components/CapacityConflictDialog'
+import { saveSubtaskEdit } from '../subtaskEdit.utils'
 import EventEditor from '../components/EventEditor'
 import { confirmEventDeletion, confirmSubtaskDeletion } from '../crud.actions'
 
@@ -267,7 +269,7 @@ export default function DetalleEvento() {
                       const updated = await updateSubtask(id, subtask.id, changes)
                       setSubtasks(current => current.map(task => task.id === updated.id ? updated : task))
                       setEditingSubtask(null)
-                      setNotice('Subtarea actualizada correctamente.')
+                      setNotice('Cambios guardados.')
                     }} /> : <>
                   <h3>{subtask.title}</h3>
                   <div className="subtask-meta">
@@ -425,28 +427,38 @@ export function SubtaskEditor({ subtask, eventDate, onSave, onCancel }) {
   const [formData, setFormData] = useState({ title: subtask.title, targetDate: subtask.targetDate, estimatedHours: String(subtask.estimatedHours) })
   const [fieldErrors, setFieldErrors] = useState({})
   const [error, setError] = useState('')
+  const [conflict, setConflict] = useState(null)
   const [busy, setBusy] = useState(false)
   const sending = useRef(false)
-  function change(e) {
-    setFormData(current => ({ ...current, [e.target.name]: e.target.value }))
-    setFieldErrors(current => ({ ...current, [e.target.name]: undefined }))
+  const returnFocus = useRef(null)
+  const active = useRef(true)
+  useEffect(() => { active.current = true; return () => { active.current = false } }, [])
+  function changeField(name, value) {
+    setFormData(current => ({ ...current, [name]: value }))
+    setFieldErrors(current => ({ ...current, [name]: undefined }))
     setError('')
   }
-  async function submit(e) {
-    e.preventDefault()
+  async function save(strategy) {
     if (sending.current) return
-    const errors = validateSubtask(formData, eventDate, getBogotaDate(), subtask.targetDate)
-    if (Object.keys(errors).length) { setFieldErrors(errors); return }
-    const values = { ...formData, title: formData.title.trim(), estimatedHours: Number(formData.estimatedHours) }
-    const changes = Object.fromEntries(Object.entries(values).filter(([key, value]) => value !== subtask[key]))
-    if (!Object.keys(changes).length) { setError('No hay cambios para guardar.'); return }
-    sending.current = true
     setBusy(true)
     setError('')
-    try { await onSave(changes) }
-    catch (err) { setError(err.message); if (err.fields) setFieldErrors(err.fields) }
-    finally { sending.current = false; setBusy(false) }
+    setFieldErrors({})
+    const result = await saveSubtaskEdit({ draft: formData, original: subtask, eventDate,
+      referenceDate: getBogotaDate(), strategy, onSave, lock: sending })
+    if (!active.current) return
+    if (result.status === 'conflict') setConflict(result.details)
+    else if (result.status === 'saved') setConflict(null)
+    else if (result.status === 'invalid') setFieldErrors(result.fields)
+    else if (result.status === 'failed') { setError(result.message); if (result.fields) setFieldErrors(result.fields) }
+    setBusy(false)
   }
-  return <SubtaskForm editing formData={formData} referenceDate={getBogotaDate()} eventDate={eventDate}
-    fieldErrors={fieldErrors} submitError={error} isSubmitting={busy} onChange={change} onSubmit={submit} onCancel={onCancel} />
+  return <>
+    <SubtaskForm editing formData={formData} referenceDate={getBogotaDate()} eventDate={eventDate}
+      fieldErrors={fieldErrors} submitError={conflict ? '' : error} isSubmitting={busy}
+      onChange={event => changeField(event.target.name, event.target.value)}
+      onSubmit={event => { event.preventDefault(); returnFocus.current = event.nativeEvent.submitter || document.activeElement; save() }} onCancel={onCancel} />
+    {conflict && <CapacityConflictDialog details={conflict} draft={formData} eventDate={eventDate}
+      referenceDate={getBogotaDate()} returnFocus={returnFocus} busy={busy} error={error} fields={fieldErrors} onChange={changeField}
+      onRetry={save} onCancel={() => { if (!sending.current) { setConflict(null); setError('') } }} />}
+  </>
 }
