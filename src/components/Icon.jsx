@@ -1,4 +1,5 @@
 const paths = {
+  settings: <><path d="M6 3v3m0 6v9M12 3v9m0 6v3M18 3v3m0 6v9" /><circle cx="6" cy="9" r="3" /><circle cx="12" cy="15" r="3" /><circle cx="18" cy="9" r="3" /></>,
   calendar: <><rect x="3" y="5" width="18" height="16" rx="3" /><path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2" /></>,
   plus: <path d="M12 5v14M5 12h14" />,
   events: <><rect x="4" y="3" width="16" height="18" rx="3" /><path d="M8 8h8m-8 4h8m-8 4h5" /></>,

@@ -62,6 +62,14 @@ export default function Navigation() {
           <span className="nav-label">Progreso</span>
         </NavLink>
 
+        <NavLink
+          to="/configuracion"
+          className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
+        >
+          <span className="nav-icon"><Icon name="settings" /></span>
+          <span className="nav-label">Configuración</span>
+        </NavLink>
+
         <button
           type="button"
           className="nav-item nav-logout"
