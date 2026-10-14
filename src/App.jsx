@@ -8,6 +8,7 @@ import Eventos from './pages/Eventos'
 import CrearEvento from './pages/CrearEvento'
 import DetalleEvento from './pages/DetalleEvento'
 import Progreso from './pages/Progreso'
+import Configuracion from './pages/Configuracion'
 import './App.css'
 
 function ProtectedRoute({ children }) {
@@ -29,6 +30,7 @@ function App() {
           <Route path="/eventos" element={<ProtectedRoute><Eventos /></ProtectedRoute>} />
           <Route path="/evento/:id" element={<ProtectedRoute><DetalleEvento /></ProtectedRoute>} />
           <Route path="/progreso" element={<ProtectedRoute><Progreso /></ProtectedRoute>} />
+          <Route path="/configuracion" element={<ProtectedRoute><Configuracion /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/hoy" replace />} />
         </Routes>
       </main>

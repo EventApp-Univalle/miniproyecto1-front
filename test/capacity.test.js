@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { createServer } from 'vite'
 import { capacityEditorReducer as reduce, capacityEditorState, saveDailyCapacity, validateDailyCapacity, requireDailyCapacity } from '../src/capacity.utils.js'
 
-let server, CapacityPanel, CapacityForm, CapacitySaveNotice, Progreso, ProgresoContent, api
+let server, CapacityPanel, CapacityForm, CapacitySaveNotice, ProgresoContent, Configuracion, ConfiguracionContent, api
 before(async () => {
   server = await createServer({ server: { middlewareMode: true, ws: false }, plugins: [{
     name: 'capacity-tests-no-remote-auth', enforce: 'pre',
@@ -19,7 +19,8 @@ before(async () => {
   }] })
   ;({ default: CapacityPanel, CapacitySaveNotice } = await server.ssrLoadModule('/src/components/CapacityPanel.jsx'))
   ;({ default: CapacityForm } = await server.ssrLoadModule('/src/components/CapacityForm.jsx'))
-  ;({ default: Progreso, ProgresoContent } = await server.ssrLoadModule('/src/pages/Progreso.jsx'))
+  ;({ ProgresoContent } = await server.ssrLoadModule('/src/pages/Progreso.jsx'))
+  ;({ default: Configuracion, ConfiguracionContent } = await server.ssrLoadModule('/src/pages/Configuracion.jsx'))
   api = await server.ssrLoadModule('/src/api.js')
 })
 after(async () => { await server?.close() })
@@ -180,9 +181,9 @@ test('datos ausentes o inconsistentes son error, nunca default local', () => {
   }
 })
 
-test('Progreso reserva capacidad antes del resumen incluso mientras este carga', () => {
-  const html = render(Progreso)
-  assert.ok(html.indexOf('Capacidad diaria') < html.indexOf('Cargando tu planificación'))
+test('Configuración reserva su panel real mientras consulta la capacidad', () => {
+  const html = render(Configuracion)
+  assert.ok(html.indexOf('Configuración') < html.indexOf('Capacidad diaria'))
   assert.match(html, /Consultando tu capacidad diaria/)
   assert.doesNotMatch(html, /Sin configurar|Configurar capacidad|\d+ h\/día/)
 })
@@ -229,11 +230,13 @@ test('GET fallido puede reintentarse sin sustituir capacidad por default', async
   })
 })
 
-test('error GET de capacidad no impide mostrar resumen real', () => {
-  const html = render(ProgresoContent, { capacityError: 'Error', loading: false,
+test('error GET en Configuración permanece separado del resumen real en Progreso', () => {
+  const configuration = render(ConfiguracionContent, { error: 'Error', loading: false })
+  assert.match(configuration, /No pudimos consultar tu capacidad/)
+  const html = render(ProgresoContent, { loading: false,
     summary: { referenceDate: '2026-10-06', eventCount: 1, taskCount: 1, estimatedHours: 2,
       sections: [{ key: 'today', label: 'Para hoy', count: 1 }] } })
-  assert.match(html, /No pudimos consultar tu capacidad/)
+  assert.doesNotMatch(html, /No pudimos consultar tu capacidad/)
   assert.match(html, /Resumen de planificación/)
   assert.match(html, /2 h/)
   assert.doesNotMatch(html, /No pudimos cargar el resumen/)

@@ -358,16 +358,17 @@ button.btn-secondary { border: 1px solid var(--border); }
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-nav);
 }
-.nav-container { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-1); }
+.nav-container { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--space-1); }
 .nav-item {
-  display: flex; align-items: center; justify-content: center; gap: var(--space-2);
-  min-width: 0; min-height: 52px; padding: 10px 8px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1);
+  min-width: 0; min-height: 56px; padding: 8px 2px;
   color: var(--text-muted); border: 1px solid transparent; border-radius: 16px;
   text-decoration: none; font-size: 13px; font-weight: 600;
   transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
 }
 button.nav-item { background: transparent; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .nav-icon { display: inline-flex; }
+.nav-label { min-width: 0; max-width: 100%; text-align: center; overflow-wrap: anywhere; }
 .nav-item.active { color: var(--primary); background: var(--primary-light); border-color: #d9c4f5; }
 .nav-item.active .nav-label { font-weight: 750; }
 .nav-item:hover { background: var(--surface-secondary); color: var(--primary); }
@@ -490,6 +491,7 @@ button.nav-item { background: transparent; font: inherit; font-size: 13px; font-
   .filter-clear { grid-column: 1 / -1; justify-self: end; }
 }
 @media (max-width: 768px) {
+  .nav-container { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .bottom-nav { max-width: 480px; width: calc(100% - 24px); margin-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); padding: 6px; }
   .nav-item, button.nav-item { flex-direction: column; gap: 4px; min-height: 56px; padding: 6px 2px; font-size: 11px; }
   .nav-icon .ui-icon { width: 21px; height: 21px; }
