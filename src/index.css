@@ -551,3 +551,16 @@ button.nav-item { background: transparent; font: inherit; font-size: 13px; font-
   .capacity-conflict-dialog h2 { font-size: 21px; }
   .conflict-strategies { grid-template-columns: minmax(0, 1fr); }
 }
+
+.conflict-suggestions { margin-block: var(--space-6); }
+.conflict-suggestions h3 { font-size: 16px; }
+.conflict-suggestions-help, .conflict-no-suggestions { margin-top: var(--space-2); font-size: 13px; color: var(--text-muted); }
+.conflict-suggestions-list { list-style: none; display: grid; gap: var(--space-2); padding: 0; margin-top: var(--space-3); }
+.conflict-suggestion { display: flex; align-items: flex-start; gap: var(--space-3); width: 100%; min-height: var(--control-height); padding: var(--space-3); text-align: left; color: var(--text-main); background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); overflow-wrap: anywhere; }
+.conflict-suggestion > .ui-icon { flex-shrink: 0; margin-top: 2px; color: var(--primary); }
+.conflict-suggestion > span { display: grid; gap: 4px; min-width: 0; }
+.conflict-suggestion strong { font-size: 14px; }
+.conflict-suggestion span span { color: var(--text-sub); font-size: 13px; }
+.conflict-suggestion:hover:not(:disabled), .conflict-suggestion[aria-pressed="true"] { border-color: var(--primary); background: var(--primary-light); }
+.conflict-suggestion .conflict-suggestion-selected { color: var(--primary); font-weight: 700; }
+.conflict-selection { margin-bottom: var(--space-4); padding: var(--space-3); background: var(--primary-light); border-radius: var(--radius-sm); font-size: 14px; }

@@ -2,9 +2,9 @@ import Icon from '../components/Icon'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { createSubtask, getEvent, getSubtasks, updateEvent, updateSubtask } from '../api'
-import { getBogotaDate, validateSubtask } from '../subtasks.utils'
+import { getBogotaDate } from '../subtasks.utils'
 import CapacityConflictDialog from '../components/CapacityConflictDialog'
-import { saveSubtaskEdit } from '../subtaskEdit.utils'
+import { saveSubtaskEdit, applyConflictSuggestion, saveSubtaskCreation, appendCreatedSubtask } from '../subtaskEdit.utils'
 import EventEditor from '../components/EventEditor'
 import { confirmEventDeletion, confirmSubtaskDeletion } from '../crud.actions'
 
@@ -33,6 +33,9 @@ export default function DetalleEvento() {
   const [actionError, setActionError] = useState('')
   const [deleting, setDeleting] = useState(null)
   const deletingRef = useRef(false)
+  const [creationConflict, setCreationConflict] = useState(null)
+  const creatingRef = useRef(false)
+  const creationReturnFocus = useRef(null)
 
   async function saveEvent(changes) {
     const updated = await updateEvent(id, changes)
@@ -100,50 +103,43 @@ export default function DetalleEvento() {
     return () => controller.abort()
   }, [id])
 
-  const handleSubtaskChange = (changeEvent) => {
-    const { name, value } = changeEvent.target
-    setFormData((current) => ({ ...current, [name]: value }))
-    setFieldErrors((current) => ({ ...current, [name]: undefined }))
+  function changeCreationField(name, value) {
+    setFormData(current => ({ ...current, [name]: value }))
+    setFieldErrors(current => ({ ...current, [name]: undefined }))
     setSubmitError('')
     setNotice('')
   }
 
-  const handleSubtaskSubmit = async (submitEvent) => {
-    submitEvent.preventDefault()
-
-    if (isSubmitting || !event) return
-    const today = getBogotaDate()
-    if (event.date < today) {
-      setSubmitError('El evento ya pasó. No se pueden agregar nuevas subtareas.')
-      return
-    }
-    const validationErrors = validateSubtask(formData, event.date, today)
-    if (Object.keys(validationErrors).length > 0) {
-      setFieldErrors(validationErrors)
-      return
-    }
-
+  async function submitCreation() {
+    if (creatingRef.current || !event) return
     setIsSubmitting(true)
     setSubmitError('')
+    setFieldErrors({})
     setNotice('')
-
-    try {
-      const createdSubtask = await createSubtask(id, {
-        title: formData.title.trim(),
-        targetDate: formData.targetDate,
-        estimatedHours: Number(formData.estimatedHours),
-      })
-
-      setSubtasks((current) => [...current, createdSubtask])
+    const result = await saveSubtaskCreation({ draft: formData, eventDate: event.date,
+      referenceDate: getBogotaDate(), onCreate: values => createSubtask(id, values), lock: creatingRef })
+    if (result.status === 'created') {
+      setSubtasks(current => appendCreatedSubtask(current, result.subtask))
       setFormData(initialSubtaskForm)
+      setCreationConflict(null)
       setFieldErrors({})
       setNotice('Subtarea agregada al plan correctamente.')
-    } catch (error) {
-      if (error.fields) setFieldErrors(error.fields)
-      setSubmitError(error.message)
-    } finally {
-      setIsSubmitting(false)
+    } else if (result.status === 'conflict') {
+      setCreationConflict(result.details)
+    } else if (result.status === 'invalid') {
+      setFieldErrors(result.fields)
+    } else if (result.status === 'failed') {
+      if (result.fields) setFieldErrors(result.fields)
+      setSubmitError(result.message)
     }
+    setIsSubmitting(false)
+  }
+
+  function handleSubtaskSubmit(submitEvent) {
+    submitEvent.preventDefault()
+    if (creationConflict || creatingRef.current || isSubmitting) return
+    creationReturnFocus.current = submitEvent.nativeEvent.submitter || document.activeElement
+    submitCreation()
   }
 
   if (isLoading) {
@@ -223,7 +219,7 @@ export default function DetalleEvento() {
           </div>
         )}
         <EventActions onEdit={() => { setEditingEvent(true); setActionError(''); setNotice('') }}
-          onDelete={removeEvent} busy={Boolean(deleting) || editingEvent || Boolean(editingSubtask) || isSubmitting} deleting={deleting === 'event'} />
+          onDelete={removeEvent} busy={Boolean(deleting) || editingEvent || Boolean(editingSubtask) || isSubmitting || Boolean(creationConflict)} deleting={deleting === 'event'} />
       </article>
       {editingEvent && <EventEditor event={event} onSave={saveEvent} onCancel={() => setEditingEvent(false)} />}
 
@@ -246,9 +242,10 @@ export default function DetalleEvento() {
             eventDate={event.date}
             formData={formData}
             fieldErrors={fieldErrors}
-            submitError={submitError}
+            submitError={creationConflict ? '' : submitError}
             isSubmitting={isSubmitting || editingEvent || Boolean(deleting) || Boolean(editingSubtask)}
-            onChange={handleSubtaskChange}
+            blocked={Boolean(creationConflict)}
+            onChange={event => changeCreationField(event.target.name, event.target.value)}
             onSubmit={handleSubtaskSubmit}
           />
 
@@ -277,7 +274,7 @@ export default function DetalleEvento() {
                     <span><Icon name="clock" /> {subtask.estimatedHours} h</span>
                   </div>
                   <SubtaskActions onEdit={() => { setEditingSubtask(subtask.id); setActionError(''); setNotice('') }}
-                    onDelete={() => removeSubtask(subtask.id)} busy={Boolean(deleting) || editingEvent || Boolean(editingSubtask) || isSubmitting}
+                    onDelete={() => removeSubtask(subtask.id)} busy={Boolean(deleting) || editingEvent || Boolean(editingSubtask) || isSubmitting || Boolean(creationConflict)}
                     deleting={deleting === subtask.id} />
                   </>}
                 </article>
@@ -286,6 +283,17 @@ export default function DetalleEvento() {
           </div>
         </div>
       </section>
+      {creationConflict && <CapacityConflictDialog details={creationConflict} draft={formData}
+        eventDate={event.date} referenceDate={getBogotaDate()} returnFocus={creationReturnFocus}
+        busy={isSubmitting} error={submitError} fields={fieldErrors} onChange={changeCreationField}
+        onSelectSuggestion={suggestion => {
+          if (creatingRef.current) return
+          setFormData(current => applyConflictSuggestion(current, suggestion))
+          setFieldErrors({})
+          setSubmitError('')
+        }} onRetry={submitCreation} onCancel={() => {
+          if (!creatingRef.current) { setCreationConflict(null); setSubmitError('') }
+        }} />}
     </div>
   )
 }
@@ -312,11 +320,12 @@ export function SubtaskForm({
   onChange,
   onSubmit,
   editing = false,
+  blocked = false,
   onCancel,
 }) {
   const fieldId = (name) => editing ? `edit-${name}` : name
   const eventHasPassed = !editing && eventDate < referenceDate
-  const disabled = isSubmitting || eventHasPassed
+  const disabled = isSubmitting || eventHasPassed || blocked
   const errorProps = (name, errorId) => ({
     'aria-invalid': Boolean(fieldErrors[name]),
     'aria-describedby': fieldErrors[name] ? errorId : undefined,
@@ -459,6 +468,11 @@ export function SubtaskEditor({ subtask, eventDate, onSave, onCancel }) {
       onSubmit={event => { event.preventDefault(); returnFocus.current = event.nativeEvent.submitter || document.activeElement; save() }} onCancel={onCancel} />
     {conflict && <CapacityConflictDialog details={conflict} draft={formData} eventDate={eventDate}
       referenceDate={getBogotaDate()} returnFocus={returnFocus} busy={busy} error={error} fields={fieldErrors} onChange={changeField}
-      onRetry={save} onCancel={() => { if (!sending.current) { setConflict(null); setError('') } }} />}
+      onSelectSuggestion={suggestion => {
+        if (sending.current) return
+        setFormData(current => applyConflictSuggestion(current, suggestion))
+        setFieldErrors({})
+        setError('')
+      }} onRetry={save} onCancel={() => { if (!sending.current) { setConflict(null); setError('') } }} />}
   </>
 }
