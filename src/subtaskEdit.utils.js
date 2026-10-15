@@ -6,7 +6,12 @@ export function capacityConflictDetails(details) {
   if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== details.targetDate) return null
   if (!Number.isFinite(details.totalHours) || !Number.isFinite(details.limitHours) ||
       details.limitHours <= 0 || details.totalHours <= details.limitHours) return null
-  const excessHours = Math.round((details.totalHours - details.limitHours) * 100) / 100
+  const decimalPlaces = value => {
+    const [mantissa, exponent = '0'] = String(value).split('e')
+    return Math.max(0, (mantissa.split('.')[1]?.length || 0) - Number(exponent))
+  }
+  const places = Math.min(100, Math.max(decimalPlaces(details.totalHours), decimalPlaces(details.limitHours)))
+  const excessHours = Number((details.totalHours - details.limitHours).toFixed(places))
   return { ...details, excessHours }
 }
 
@@ -52,4 +57,67 @@ export function containConflictFocus(event) {
     event.preventDefault()
     ;(event.shiftKey ? last : first).focus()
   }
+}
+
+
+export function conflictSuggestions(details) {
+  if (!Array.isArray(details?.suggestions)) return []
+  return details.suggestions.filter(suggestion => {
+    if (!suggestion || !['CHANGE_DATE', 'ADJUST_HOURS'].includes(suggestion.strategy) ||
+        !Number.isFinite(suggestion.estimatedHours) || suggestion.estimatedHours <= 0 ||
+        typeof suggestion.targetDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(suggestion.targetDate)) return false
+    const date = new Date(`${suggestion.targetDate}T00:00:00Z`)
+    return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === suggestion.targetDate
+  })
+}
+
+// Only the proposed field changes; title and all other pending edits survive.
+export function applyConflictSuggestion(draft, suggestion) {
+  if (!conflictSuggestions({ suggestions: [suggestion] }).length) return draft
+  return suggestion.strategy === 'CHANGE_DATE' ? { ...draft, targetDate: suggestion.targetDate }
+    : { ...draft, estimatedHours: String(suggestion.estimatedHours) }
+}
+
+export function formatConflictDate(value) {
+  // A calendar date must not shift to the previous day in Colombia.
+  const date = new Date(`${value}T00:00:00Z`)
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== value) return 'Fecha por confirmar'
+  return new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+    .format(date)
+}
+
+export function formatSuggestedHours(value) {
+  // Preserve small positive proposals rather than displaying them as 0 h.
+  return String(value).replace('.', ',')
+}
+
+
+export async function saveSubtaskCreation({ draft, eventDate, referenceDate, onCreate, lock }) {
+  if (lock.current) return { status: 'blocked' }
+  if (eventDate < referenceDate) return { status: 'failed', message: 'El evento ya pasó. No se pueden agregar nuevas subtareas.' }
+  const fields = validateSubtask(draft, eventDate, referenceDate)
+  if (Object.keys(fields).length) return { status: 'invalid', fields }
+  lock.current = true
+  try {
+    const subtask = await onCreate({ title: draft.title.trim(), targetDate: draft.targetDate,
+      estimatedHours: Number(draft.estimatedHours) })
+    if (!subtask || typeof subtask.id !== 'string' || !subtask.id) throw new Error('El servidor devolvió una respuesta inesperada.')
+    return { status: 'created', subtask }
+  } catch (error) {
+    if (error?.code === 'DAILY_CAPACITY_EXCEEDED') {
+      const details = capacityConflictDetails(error.details)
+      if (details) return { status: 'conflict', details }
+    }
+    return { status: 'failed', fields: error?.fields,
+      message: error?.message || 'No pudimos crear la subtarea. Intenta nuevamente.' }
+  } finally { lock.current = false }
+}
+
+export function appendCreatedSubtask(tasks, created) {
+  return tasks.some(task => task.id === created.id) ? tasks : [...tasks, created]
+}
+
+export function focusConflictInput(input, strategy) {
+  input?.focus()
+  if (strategy === 'hours') input?.select()
 }
