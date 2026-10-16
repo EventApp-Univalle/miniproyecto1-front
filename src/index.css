@@ -248,6 +248,26 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .capacity-actions { display: flex; gap: var(--space-3); flex-wrap: wrap; }
 .capacity-form > .feedback-banner { grid-column: 1 / -1; margin: 0; }
 .capacity-panel > .feedback-success { margin-top: var(--space-4); margin-bottom: 0; }
+.capacity-impact-status { margin-top: var(--space-4); font-size: 14px; color: var(--text-sub); }
+.capacity-impact { margin-top: var(--space-6); padding: var(--space-4); background: var(--warning-light); border: 1px solid #e1c486; border-radius: var(--radius-md); min-width: 0; }
+.capacity-impact-heading { display: flex; gap: var(--space-2); align-items: flex-start; color: #765000; }
+.capacity-impact-heading .ui-icon { flex-shrink: 0; }
+.capacity-impact-heading h3 { font-size: 18px; }
+.capacity-impact > p { margin-top: var(--space-2); font-size: 14px; color: var(--text-sub); }
+.capacity-impact-days, .capacity-impact-tasks { list-style: none; margin: 0; padding: 0; }
+.capacity-impact-days { display: grid; gap: var(--space-4); margin-top: var(--space-4); }
+.capacity-impact-day { min-width: 0; padding: var(--space-4); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.capacity-impact h4, .capacity-impact strong { overflow-wrap: anywhere; }
+.capacity-impact-totals { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-6); margin-block: var(--space-4); }
+.capacity-impact-totals dt { font-size: 12px; color: var(--text-muted); }
+.capacity-impact-totals dd { margin: 0; font-weight: 650; overflow-wrap: anywhere; }
+.capacity-impact-tasks { display: grid; gap: var(--space-3); }
+.capacity-impact-tasks li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border); }
+.capacity-impact-tasks li > div { flex: 1 1 160px; min-width: 0; }
+.capacity-impact-tasks strong { display: block; font-size: 14px; }
+.capacity-impact-tasks span { display: block; font-size: 13px; color: var(--text-sub); }
+.capacity-impact-tasks a { max-width: 100%; white-space: normal; text-align: center; }
+.subtask-card:target { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); scroll-margin-block: var(--space-6); }
 @media (max-width: 768px) {
   .capacity-form { grid-template-columns: minmax(0, 1fr); }
 }

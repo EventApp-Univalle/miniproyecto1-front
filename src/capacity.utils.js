@@ -27,6 +27,34 @@ export function requireDailyCapacity(capacity) {
   return capacity
 }
 
+// Missing or incomplete analysis is unknown, never an empty plan. Keep the
+// confirmed capacity usable even when an older server does not return impact.
+export function getCapacityImpact(capacity) {
+  const impact = capacity?.impact
+  if (!impact || typeof impact.hasOverload !== 'boolean' ||
+      !Number.isSafeInteger(impact.affectedDayCount) || impact.affectedDayCount < 0 ||
+      !Array.isArray(impact.affectedDays) || impact.affectedDayCount !== impact.affectedDays.length ||
+      impact.hasOverload !== (impact.affectedDayCount > 0)) return null
+  const positive = value => typeof value === 'number' && Number.isFinite(value) && value > 0
+  const uuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+  const dates = new Set()
+  for (const day of impact.affectedDays) {
+    const date = new Date(`${day?.date}T00:00:00Z`)
+    if (!day || !/^\d{4}-\d{2}-\d{2}$/.test(day.date) || !Number.isFinite(date.getTime()) ||
+        date.toISOString().slice(0, 10) !== day.date || dates.has(day.date) ||
+        !positive(day.plannedHours) || !positive(day.excessHours) ||
+        day.limitHours !== capacity.dailyLimitHours || !Array.isArray(day.tasks) || !day.tasks.length) return null
+    dates.add(day.date)
+    const taskIds = new Set()
+    for (const task of day.tasks) {
+      if (!task || !uuid(task.subtaskId) || !uuid(task.eventId) || taskIds.has(task.subtaskId) ||
+          typeof task.title !== 'string' || !task.title.trim() || !positive(task.estimatedHours)) return null
+      taskIds.add(task.subtaskId)
+    }
+  }
+  return { ...impact, affectedDays: [...impact.affectedDays].sort((a, b) => a.date.localeCompare(b.date)) }
+}
+
 export function capacityEditorState(capacity) {
   return { confirmed: capacity, draft: capacity ? String(capacity.dailyLimitHours) : '',
     editing: false, saving: false, fieldError: '', saveError: '', notice: '' }

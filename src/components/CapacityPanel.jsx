@@ -1,6 +1,7 @@
 import { useEffect, useId, useReducer, useRef } from 'react'
 import { capacityEditorReducer, capacityEditorState, saveDailyCapacity, validateDailyCapacity, requireDailyCapacity } from '../capacity.utils'
 import CapacityForm from './CapacityForm'
+import CapacityImpact from './CapacityImpact'
 import Icon from './Icon'
 
 // Data-source adapter: onSave(hours) resolves to the complete confirmed response.
@@ -57,6 +58,7 @@ export default function CapacityPanel({ capacity, loading = false, error = '', s
     </div>
     {content}
     {!loading && !error && validSource && state.notice && <CapacitySaveNotice />}
+    {!loading && !error && validSource && <CapacityImpact capacity={state.confirmed} />}
   </section>
 }
 

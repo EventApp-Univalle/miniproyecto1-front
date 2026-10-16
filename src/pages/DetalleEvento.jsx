@@ -7,6 +7,7 @@ import CapacityConflictDialog from '../components/CapacityConflictDialog'
 import { saveSubtaskEdit, applyConflictSuggestion, saveSubtaskCreation, appendCreatedSubtask } from '../subtaskEdit.utils'
 import EventEditor from '../components/EventEditor'
 import { confirmEventDeletion, confirmSubtaskDeletion } from '../crud.actions'
+import { focusLinkedSubtask, subtaskElementId } from '../subtaskNavigation.utils'
 
 const initialSubtaskForm = {
   title: '',
@@ -36,6 +37,13 @@ export default function DetalleEvento() {
   const [creationConflict, setCreationConflict] = useState(null)
   const creatingRef = useRef(false)
   const creationReturnFocus = useRef(null)
+  const focusedSubtaskLink = useRef(null)
+
+  useEffect(() => {
+    const linkKey = `${location.key}${location.hash}`
+    if (isLoading || loadError || notFound || event?.id !== id || focusedSubtaskLink.current === linkKey) return
+    if (focusLinkedSubtask(location.hash, document)) focusedSubtaskLink.current = linkKey
+  }, [isLoading, loadError, notFound, event?.id, id, subtasks, location.key, location.hash])
 
   async function saveEvent(changes) {
     const updated = await updateEvent(id, changes)
@@ -260,7 +268,8 @@ export default function DetalleEvento() {
               </div>
             ) : (
               subtasks.map((subtask) => (
-                <article className="subtask-card" key={subtask.id}>
+                <article className="subtask-card" key={subtask.id} id={subtaskElementId(subtask.id)}
+                  tabIndex={-1} aria-label={`Subtarea: ${subtask.title}`}>
                   {editingSubtask === subtask.id ? <SubtaskEditor subtask={subtask} eventDate={event.date}
                     onCancel={() => setEditingSubtask(null)} onSave={async changes => {
                       const updated = await updateSubtask(id, subtask.id, changes)
