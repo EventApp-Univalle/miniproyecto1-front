@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { getEvents, getTodayTasks } from '../api'
+import { getProgress, getTodayTasks } from '../api'
 import { summarizePlanning } from '../planning.utils'
 import PageHeader from '../components/PageHeader'
 import Icon from '../components/Icon'
+import EventProgress from '../components/EventProgress'
+import { requireEventProgress } from '../execution.utils'
 
 const hoursFormat = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 3 })
 
@@ -20,9 +22,11 @@ export default function Progreso() {
       setError('')
       try {
         const [events, today] = await Promise.all([
-          getEvents(controller.signal), getTodayTasks(controller.signal),
+          getProgress(controller.signal), getTodayTasks(controller.signal),
         ])
-        if (!controller.signal.aborted) setSummary(summarizePlanning(events, today))
+        if (!Array.isArray(events)) throw new Error('No pudimos cargar el progreso de tus eventos.')
+        events.forEach(requireEventProgress)
+        if (!controller.signal.aborted) setSummary({ ...summarizePlanning(events, today), eventProgress: events })
       } catch (err) {
         if (!controller.signal.aborted && err.name !== 'AbortError') setError(err.message)
       } finally {
@@ -52,10 +56,15 @@ export function ProgresoContent({ summary, loading, error, onRetry }) {
       <h2>No pudimos cargar el resumen</h2><p>{error}</p>
       <button className="btn-primary" type="button" onClick={onRetry}>Intentar de nuevo</button>
     </div> : summary && <>
+    {summary.eventProgress && <section className="event-progress-list" aria-label="Avance logístico por evento">
+      <h2>Avance por evento</h2>
+      {summary.eventProgress.length ? summary.eventProgress.map(progress => <EventProgress key={progress.eventId} progress={progress} />)
+        : <p>Aún no tienes eventos. <Link to="/crear">Crear evento</Link></p>}
+    </section>}
     <div className="planning-heading"><span className="type-badge">Planificación actual</span><span>Fecha de referencia: {summary.referenceDate}</span></div>
     <div className="planning-stats" aria-label="Resumen de planificación">
       <SummaryCard icon="calendar" label="Eventos" value={summary.eventCount} description="Incluye eventos sin subtareas." />
-      <SummaryCard icon="events" label="Subtareas" value={summary.taskCount} description="En tu planificación actual." />
+      <SummaryCard icon="events" label="Subtareas pendientes" value={summary.taskCount} description="Pendientes de ejecución." />
       <SummaryCard icon="clock" label="Horas estimadas" value={`${hoursFormat.format(summary.estimatedHours)} h`} description="Suma de esas subtareas; no son horas ejecutadas." />
     </div>
     {summary.taskCount > 0 ? <section className="planning-distribution" aria-labelledby="planning-title">
@@ -68,11 +77,11 @@ export function ProgresoContent({ summary, loading, error, onRetry }) {
       </div>
     </section> : <div className="page-state planning-empty" role="status">
       <span className="state-icon"><Icon name="inbox" /></span>
-      <h2>{summary.eventCount ? 'Tu plan está por comenzar' : 'Empieza con tu primer evento'}</h2>
-      <p>{summary.eventCount ? 'Ya tienes eventos. Añade subtareas para ver su distribución aquí.' : 'Crea un evento y añade su plan logístico.'}</p>
+      <h2>{summary.eventProgress?.some(event => event.totalCount > 0) ? 'No hay tareas pendientes' : summary.eventCount ? 'Tu plan está por comenzar' : 'Empieza con tu primer evento'}</h2>
+      <p>{summary.eventProgress?.some(event => event.totalCount > 0) ? 'Las gestiones Hechas y Pospuestas siguen disponibles en Hoy y en el detalle de cada evento.' : summary.eventCount ? 'Ya tienes eventos. Añade subtareas para ver su distribución aquí.' : 'Crea un evento y añade su plan logístico.'}</p>
       <Link className="btn-primary" to={summary.eventCount ? '/eventos' : '/crear'}>{summary.eventCount ? 'Ver mis eventos' : 'Crear evento'}</Link>
     </div>}
-    <div className="planning-note"><Icon name="info" /><p>Este resumen muestra planificación. Las métricas de ejecución estarán disponibles posteriormente.</p><Link to="/hoy">Ir a Hoy<Icon name="arrow" /></Link></div>
+    <div className="planning-note"><Icon name="info" /><p>El avance cuenta gestiones Hechas sobre el total, incluidas las Pospuestas. La distribución por fecha y las horas muestran solo trabajo pendiente; no son capacidad disponible.</p><Link to="/hoy">Ir a Hoy<Icon name="arrow" /></Link></div>
     </>}
   </div>
 }

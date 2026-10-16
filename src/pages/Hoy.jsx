@@ -2,6 +2,9 @@ import Icon from '../components/Icon'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { getTodayTasks } from '../api'
+import { todaySections } from '../execution.utils'
+import { ExecutionSummary } from '../components/SubtaskExecutionEditor'
+import { subtaskReviewPath } from '../subtaskNavigation.utils'
 
 function formatTaskDate(date) {
   return new Date(`${date}T12:00:00Z`).toLocaleDateString('es-ES', {
@@ -11,13 +14,14 @@ function formatTaskDate(date) {
   })
 }
 
-function TaskCard({ task }) {
+export function TaskCard({ task }) {
   return (
     <article className="today-task-card">
       <div className="today-task-main">
         <div className="today-task-heading">
           <h3>{task.title}</h3>
         </div>
+        <ExecutionSummary subtask={task} />
         <p className="today-task-event">{task.eventTitle}</p>
         <div className="today-task-meta">
           <span><Icon name="calendar" /> {formatTaskDate(task.targetDate)}</span>
@@ -25,7 +29,7 @@ function TaskCard({ task }) {
         </div>
       </div>
       <div className="today-task-side">
-        <Link to={`/evento/${task.eventId}`} className="btn-detail">
+        <Link to={subtaskReviewPath({ eventId: task.eventId, subtaskId: task.id })} className="btn-detail">
           Ver evento <Icon name="arrow" />
         </Link>
       </div>
@@ -119,6 +123,7 @@ export default function Hoy() {
   const [eventFilter, setEventFilter] = useState('all')
   const [eventOptions, setEventOptions] = useState([])
   const [dateFilter, setDateFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('PENDING')
   const [retry, setRetry] = useState(0)
 
   useEffect(() => {
@@ -135,7 +140,7 @@ export default function Hoy() {
         }
         setGroups(data)
         if (eventFilter === 'all') {
-          const events = new Map([...data.overdue, ...data.today, ...data.upcoming]
+          const events = new Map([...data.overdue, ...data.today, ...data.upcoming, ...(data.done ?? []), ...(data.postponed ?? [])]
             .map(task => [task.eventId, task.eventTitle]))
           setEventOptions([...events].map(([value, label]) => ({ value, label })))
         }
@@ -152,18 +157,15 @@ export default function Hoy() {
 
   const overdueTasks = groups?.overdue ?? []
   const todayTasks = groups?.today ?? []
-  const upcomingTasks = groups?.upcoming ?? []
-  const visibleSections = [
-    { key: 'overdue', title: 'Vencidas', tasks: overdueTasks },
-    { key: 'today', title: 'Para hoy', tasks: todayTasks },
-    { key: 'upcoming', title: 'Próximas', tasks: upcomingTasks },
-  ].filter(section => dateFilter === 'all' || section.key === dateFilter)
-  const totalCount = overdueTasks.length + todayTasks.length + upcomingTasks.length
+  const stateSections = todaySections(groups, statusFilter)
+  const visibleSections = stateSections.filter(section => statusFilter !== 'PENDING' || dateFilter === 'all' || section.key === dateFilter)
+  const totalCount = stateSections.reduce((count, section) => count + section.tasks.length, 0)
   const visibleCount = visibleSections.reduce((count, section) => count + section.tasks.length, 0)
-  const hasActiveFilters = eventFilter !== 'all' || dateFilter !== 'all'
+  const hasActiveFilters = eventFilter !== 'all' || (statusFilter === 'PENDING' && dateFilter !== 'all') || statusFilter !== 'PENDING'
   function clearFilters() {
     setEventFilter('all')
     setDateFilter('all')
+    setStatusFilter('PENDING')
   }
 
   if (isLoading) return (
@@ -203,7 +205,7 @@ export default function Hoy() {
       </section>
       <details className="today-order-help">
         <summary><Icon name="info" /><span>¿Cómo se ordena?</span><span className="help-chevron" aria-hidden="true">⌄</span></summary>
-        <p>Las subtareas se agrupan en Vencidas, Para hoy y Próximas según su fecha objetivo. Dentro de cada grupo se ordenan por fecha y, en caso de empate, primero se muestra la de menor esfuerzo estimado.</p>
+        <p>Las subtareas pendientes se agrupan en Vencidas, Para hoy y Próximas según su fecha objetivo. Dentro de cada grupo se ordenan por fecha y, en caso de empate, primero se muestra la de menor esfuerzo estimado. Las Hechas y Pospuestas se consultan por separado con el filtro Estado.</p>
       </details>
       <section className="today-filters" aria-label="Filtros de tareas">
         <div className="filter-group">
@@ -213,13 +215,14 @@ export default function Hoy() {
             {eventOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         </div>
-        <FilterGroup label="Fecha" options={DATE_FILTERS} value={dateFilter} onChange={setDateFilter} />
+        <FilterGroup label="Estado" options={[{ value: 'PENDING', label: 'Pendientes' }, { value: 'POSTPONED', label: 'Pospuestas' }, { value: 'DONE', label: 'Hechas' }]} value={statusFilter} onChange={setStatusFilter} />
+        {statusFilter === 'PENDING' && <FilterGroup label="Fecha" options={DATE_FILTERS} value={dateFilter} onChange={setDateFilter} />}
         {hasActiveFilters && <button type="button" className="filter-clear" onClick={clearFilters}>Limpiar filtros</button>}
       </section>
       {visibleCount > 0 ? (
         <div className="today-task-sections">
           {visibleSections.map(section => (
-            <TaskSection key={eventFilter + '-' + section.key} title={section.title} tasks={section.tasks} tone={section.key} />
+            <TaskSection key={eventFilter + '-' + statusFilter + '-' + section.key} title={section.title} tasks={section.tasks} tone={section.key} />
           ))}
         </div>
       ) : (
@@ -232,7 +235,7 @@ export default function Hoy() {
             </>
           ) : (
             <>
-              <p>Aún no tienes subtareas. Crea un evento y añade su plan de trabajo.</p>
+              <p>No tienes tareas pendientes. Puedes consultar Hechas y Pospuestas con el filtro Estado, o añadir un plan de trabajo.</p>
               <Link to="/crear" className="btn-secondary">Crear evento</Link>
             </>
           )}

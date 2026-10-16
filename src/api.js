@@ -159,3 +159,14 @@ export function updateDailyCapacity(dailyLimitHours, signal) {
     ...jsonOptions('PATCH', { dailyLimitHours }, signal), expectedStatus: 200,
   })
 }
+
+export function updateSubtaskExecution(eventId, subtaskId, values) {
+  return request(`/api/eventos/${encodeURIComponent(eventId)}/subtareas/${encodeURIComponent(subtaskId)}/ejecucion`,
+    { ...jsonOptions('PATCH', values), expectedStatus: 200 })
+}
+export function getEventProgress(eventId, signal) {
+  return request(`/api/eventos/${encodeURIComponent(eventId)}/progreso`, { expectedStatus: 200, signal })
+}
+export function getProgress(signal) {
+  return request('/api/progreso', { expectedStatus: 200, signal })
+}
