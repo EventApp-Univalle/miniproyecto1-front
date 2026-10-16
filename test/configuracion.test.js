@@ -106,6 +106,6 @@ test('Progreso conserva estadísticas y acceso contextual sin montar editor', ()
 test('Progreso no mantiene consulta ni guardado de capacidad; conserva las consultas del resumen', async () => {
   const source = await readFile(new URL('../src/pages/Progreso.jsx', import.meta.url), 'utf8')
   assert.doesNotMatch(source, /getDailyCapacity|updateDailyCapacity|CapacityPanel|requireDailyCapacity/)
-  assert.match(source, /getEvents\(controller.signal\)/)
+  assert.match(source, /getProgress\(controller.signal\)/)
   assert.match(source, /getTodayTasks\(controller.signal\)/)
 })

@@ -1,11 +1,14 @@
 import Icon from '../components/Icon'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
-import { createSubtask, getEvent, getSubtasks, updateEvent, updateSubtask } from '../api'
+import { createSubtask, getEvent, getSubtasks, updateEvent, updateSubtask, updateSubtaskExecution, getEventProgress } from '../api'
 import { getBogotaDate } from '../subtasks.utils'
 import CapacityConflictDialog from '../components/CapacityConflictDialog'
 import { saveSubtaskEdit, applyConflictSuggestion, saveSubtaskCreation, appendCreatedSubtask } from '../subtaskEdit.utils'
 import EventEditor from '../components/EventEditor'
+import SubtaskExecutionEditor, { ExecutionSummary } from '../components/SubtaskExecutionEditor'
+import EventProgress from '../components/EventProgress'
+import { executionLabels, requireEventProgress } from '../execution.utils'
 import { confirmEventDeletion, confirmSubtaskDeletion } from '../crud.actions'
 import { focusLinkedSubtask, subtaskElementId } from '../subtaskNavigation.utils'
 
@@ -45,6 +48,36 @@ export default function DetalleEvento() {
     if (focusLinkedSubtask(location.hash, document)) focusedSubtaskLink.current = linkKey
   }, [isLoading, loadError, notFound, event?.id, id, subtasks, location.key, location.hash])
 
+  const [executionTask, setExecutionTask] = useState(null)
+  const [progress, setProgress] = useState(null)
+  const [progressLoading, setProgressLoading] = useState(true)
+  const [progressError, setProgressError] = useState('')
+  const [progressRetry, setProgressRetry] = useState(0)
+  function refreshProgress() {
+    setProgressLoading(true)
+    setProgressRetry(value => value + 1)
+  }
+  useEffect(() => {
+    const controller = new AbortController()
+    async function loadProgress() {
+      setProgressLoading(true)
+      setProgressError('')
+      try {
+        const confirmed = requireEventProgress(await getEventProgress(id, controller.signal))
+        if (!controller.signal.aborted) setProgress(confirmed)
+      } catch (error) {
+        if (!controller.signal.aborted && error.name !== 'AbortError') setProgressError('No pudimos actualizar el progreso.')
+      } finally { if (!controller.signal.aborted) setProgressLoading(false) }
+    }
+    loadProgress()
+    return () => controller.abort()
+  }, [id, progressRetry])
+  function closeExecution() {
+    setExecutionTask(null)
+    const target = document.getElementById(subtaskElementId(executionTask))
+    target?.focus()
+  }
+
   async function saveEvent(changes) {
     const updated = await updateEvent(id, changes)
     setEvent(updated)
@@ -69,6 +102,7 @@ export default function DetalleEvento() {
       await confirmSubtaskDeletion(id, subtaskId, deletedId => {
         setSubtasks(current => current.filter(task => task.id !== deletedId))
         setNotice('Subtarea eliminada correctamente.')
+        refreshProgress()
       })
     } catch (error) { setActionError(error.message) }
     finally { deletingRef.current = false; setDeleting(null) }
@@ -132,6 +166,7 @@ export default function DetalleEvento() {
       setCreationConflict(null)
       setFieldErrors({})
       setNotice('Subtarea agregada al plan correctamente.')
+      refreshProgress()
     } else if (result.status === 'conflict') {
       setCreationConflict(result.details)
     } else if (result.status === 'invalid') {
@@ -227,9 +262,11 @@ export default function DetalleEvento() {
           </div>
         )}
         <EventActions onEdit={() => { setEditingEvent(true); setActionError(''); setNotice('') }}
-          onDelete={removeEvent} busy={Boolean(deleting) || editingEvent || Boolean(editingSubtask) || isSubmitting || Boolean(creationConflict)} deleting={deleting === 'event'} />
+          onDelete={removeEvent} busy={Boolean(deleting) || editingEvent || Boolean(editingSubtask) || Boolean(executionTask) || isSubmitting || Boolean(creationConflict)} deleting={deleting === 'event'} />
       </article>
       {editingEvent && <EventEditor event={event} onSave={saveEvent} onCancel={() => setEditingEvent(false)} />}
+
+      <EventProgress progress={progress} loading={progressLoading} error={progressError} onRetry={refreshProgress} />
 
       <section className="plan-section" aria-labelledby="plan-title">
         <div className="section-header plan-header">
@@ -251,7 +288,7 @@ export default function DetalleEvento() {
             formData={formData}
             fieldErrors={fieldErrors}
             submitError={creationConflict ? '' : submitError}
-            isSubmitting={isSubmitting || editingEvent || Boolean(deleting) || Boolean(editingSubtask)}
+            isSubmitting={isSubmitting || editingEvent || Boolean(deleting) || Boolean(editingSubtask) || Boolean(executionTask)}
             blocked={Boolean(creationConflict)}
             onChange={event => changeCreationField(event.target.name, event.target.value)}
             onSubmit={handleSubtaskSubmit}
@@ -270,7 +307,14 @@ export default function DetalleEvento() {
               subtasks.map((subtask) => (
                 <article className="subtask-card" key={subtask.id} id={subtaskElementId(subtask.id)}
                   tabIndex={-1} aria-label={`Subtarea: ${subtask.title}`}>
-                  {editingSubtask === subtask.id ? <SubtaskEditor subtask={subtask} eventDate={event.date}
+                  {executionTask === subtask.id ? <SubtaskExecutionEditor subtask={subtask}
+                    onSave={values => updateSubtaskExecution(id, subtask.id, values)}
+                    onSaved={updated => {
+                      setSubtasks(current => current.map(task => task.id === updated.id ? updated : task))
+                      closeExecution()
+                      setNotice(`Subtarea marcada como ${executionLabels[updated.status]}. Nota guardada.`)
+                      refreshProgress()
+                    }} onCancel={closeExecution} /> : editingSubtask === subtask.id ? <SubtaskEditor subtask={subtask} eventDate={event.date}
                     onCancel={() => setEditingSubtask(null)} onSave={async changes => {
                       const updated = await updateSubtask(id, subtask.id, changes)
                       setSubtasks(current => current.map(task => task.id === updated.id ? updated : task))
@@ -278,12 +322,15 @@ export default function DetalleEvento() {
                       setNotice('Cambios guardados.')
                     }} /> : <>
                   <h3>{subtask.title}</h3>
+                  <ExecutionSummary subtask={subtask} />
                   <div className="subtask-meta">
                     <span><Icon name="calendar" /> {subtask.targetDate}</span>
                     <span><Icon name="clock" /> {subtask.estimatedHours} h</span>
                   </div>
-                  <SubtaskActions onEdit={() => { setEditingSubtask(subtask.id); setActionError(''); setNotice('') }}
-                    onDelete={() => removeSubtask(subtask.id)} busy={Boolean(deleting) || editingEvent || Boolean(editingSubtask) || isSubmitting || Boolean(creationConflict)}
+                  <SubtaskActions onExecution={() => {
+                    setExecutionTask(subtask.id); setActionError(''); setNotice('')
+                  }} onEdit={() => { setEditingSubtask(subtask.id); setActionError(''); setNotice('') }}
+                    onDelete={() => removeSubtask(subtask.id)} busy={Boolean(deleting) || editingEvent || Boolean(editingSubtask) || Boolean(executionTask) || isSubmitting || Boolean(creationConflict)}
                     deleting={deleting === subtask.id} />
                   </>}
                 </article>
@@ -434,8 +481,9 @@ export function EventActions({ onEdit, onDelete, busy, deleting }) {
     <button type="button" className="btn-danger" disabled={busy} onClick={onDelete}><Icon name="trash" />{deleting ? 'Eliminando…' : 'Eliminar evento'}</button>
   </div>
 }
-export function SubtaskActions({ onEdit, onDelete, busy, deleting }) {
+export function SubtaskActions({ onEdit, onDelete, onExecution, busy, deleting }) {
   return <div className="crud-actions">
+    {onExecution && <button type="button" className="btn-primary" disabled={busy} onClick={onExecution}>Registrar avance</button>}
     <button type="button" className="btn-secondary" disabled={busy} onClick={onEdit}><Icon name="edit" />Editar</button>
     <button type="button" className="btn-danger" disabled={busy} onClick={onDelete}><Icon name="trash" />{deleting ? 'Eliminando…' : 'Eliminar'}</button>
   </div>

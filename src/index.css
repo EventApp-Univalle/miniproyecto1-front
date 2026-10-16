@@ -584,3 +584,25 @@ button.nav-item { background: transparent; font: inherit; font-size: 13px; font-
 .conflict-suggestion:hover:not(:disabled), .conflict-suggestion[aria-pressed="true"] { border-color: var(--primary); background: var(--primary-light); }
 .conflict-suggestion .conflict-suggestion-selected { color: var(--primary); font-weight: 700; }
 .conflict-selection { margin-bottom: var(--space-4); padding: var(--space-3); background: var(--primary-light); border-radius: var(--radius-sm); font-size: 14px; }
+
+/* Sprint 4: state and execution progress remain distinct from daily capacity. */
+.execution-summary { display: grid; gap: var(--space-2); margin-block: var(--space-3); min-width: 0; }
+.execution-badge { justify-self: start; padding: 4px 10px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 650; background: var(--surface-secondary); color: var(--text-sub); }
+.execution-DONE { color: var(--success); background: var(--success-light); }
+.execution-POSTPONED { color: #765000; background: var(--warning-light); }
+.execution-note { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; color: var(--text-sub); }
+.execution-summary small { color: var(--text-muted); font-size: 12px; overflow-wrap: anywhere; }
+.execution-form h3, .execution-form p { overflow-wrap: anywhere; }
+.execution-form > p { font-size: 14px; color: var(--text-sub); }
+.event-progress { min-width: 0; margin-block: var(--space-4); padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+.event-progress-heading { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; justify-content: space-between; }
+.event-progress-heading h3 { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; font-size: 17px; }
+.event-progress-heading strong { color: var(--primary); }
+.event-progress p { font-size: 14px; color: var(--text-sub); margin-top: var(--space-2); }
+.event-progress progress { appearance: none; display: block; width: 100%; height: 10px; border: 0; border-radius: 12px; overflow: hidden; margin-top: var(--space-3); background: var(--surface-secondary); accent-color: var(--primary); }
+.event-progress progress::-webkit-progress-bar { background: var(--surface-secondary); }
+.event-progress progress::-webkit-progress-value { background: var(--primary); border-radius: 12px; }
+.event-progress progress::-moz-progress-bar { background: var(--primary); border-radius: 12px; }
+.progress-error { padding: var(--space-4); margin-block: var(--space-4); border-radius: var(--radius-sm); background: var(--danger-light); }
+.progress-error button { margin-top: var(--space-3); }
+.event-progress-list { margin-block: var(--space-6); }
