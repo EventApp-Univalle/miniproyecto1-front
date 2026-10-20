@@ -10,7 +10,7 @@ import SubtaskExecutionEditor, { ExecutionSummary } from '../components/SubtaskE
 import EventProgress from '../components/EventProgress'
 import { executionLabels, requireEventProgress } from '../execution.utils'
 import { confirmEventDeletion, confirmSubtaskDeletion } from '../crud.actions'
-import { focusLinkedSubtask, subtaskElementId } from '../subtaskNavigation.utils'
+import { focusLinkedSubtask, subtaskElementId, reprogramTarget } from '../subtaskNavigation.utils'
 
 const initialSubtaskForm = {
   title: '',
@@ -33,7 +33,9 @@ export default function DetalleEvento() {
   const [submitError, setSubmitError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [editingEvent, setEditingEvent] = useState(false)
-  const [editingSubtask, setEditingSubtask] = useState(null)
+  const [editingSubtaskId, setEditingSubtask] = useState(() => reprogramTarget(location.search))
+  const editingSubtask = subtasks.some(task => task.id === editingSubtaskId) ? editingSubtaskId : null
+  const [loadRetry, setLoadRetry] = useState(0)
   const [actionError, setActionError] = useState('')
   const [deleting, setDeleting] = useState(null)
   const deletingRef = useRef(false)
@@ -44,9 +46,9 @@ export default function DetalleEvento() {
 
   useEffect(() => {
     const linkKey = `${location.key}${location.hash}`
-    if (isLoading || loadError || notFound || event?.id !== id || focusedSubtaskLink.current === linkKey) return
+    if (editingSubtask || isLoading || loadError || notFound || event?.id !== id || focusedSubtaskLink.current === linkKey) return
     if (focusLinkedSubtask(location.hash, document)) focusedSubtaskLink.current = linkKey
-  }, [isLoading, loadError, notFound, event?.id, id, subtasks, location.key, location.hash])
+  }, [isLoading, loadError, notFound, event?.id, id, subtasks, location.key, location.hash, editingSubtask])
 
   const [executionTask, setExecutionTask] = useState(null)
   const [progress, setProgress] = useState(null)
@@ -143,7 +145,7 @@ export default function DetalleEvento() {
 
     loadEventPlan()
     return () => controller.abort()
-  }, [id])
+  }, [id, loadRetry])
 
   function changeCreationField(name, value) {
     setFormData(current => ({ ...current, [name]: value }))
@@ -215,7 +217,7 @@ export default function DetalleEvento() {
         <button
           type="button"
           className="btn-secondary"
-          onClick={() => window.location.reload()}
+          onClick={() => { setLoadRetry(value => value + 1); refreshProgress() }}
         >
           Intentar de nuevo
         </button>
@@ -288,8 +290,8 @@ export default function DetalleEvento() {
             formData={formData}
             fieldErrors={fieldErrors}
             submitError={creationConflict ? '' : submitError}
-            isSubmitting={isSubmitting || editingEvent || Boolean(deleting) || Boolean(editingSubtask) || Boolean(executionTask)}
-            blocked={Boolean(creationConflict)}
+            isSubmitting={isSubmitting}
+            blocked={Boolean(creationConflict) || editingEvent || Boolean(deleting) || Boolean(editingSubtask) || Boolean(executionTask)}
             onChange={event => changeCreationField(event.target.name, event.target.value)}
             onSubmit={handleSubtaskSubmit}
           />
@@ -314,7 +316,7 @@ export default function DetalleEvento() {
                       closeExecution()
                       setNotice(`Subtarea marcada como ${executionLabels[updated.status]}. Nota guardada.`)
                       refreshProgress()
-                    }} onCancel={closeExecution} /> : editingSubtask === subtask.id ? <SubtaskEditor subtask={subtask} eventDate={event.date}
+                    }} onCancel={closeExecution} /> : editingSubtask === subtask.id ? <SubtaskEditor subtask={subtask} eventDate={event.date} focusDate={reprogramTarget(location.search) === subtask.id}
                     onCancel={() => setEditingSubtask(null)} onSave={async changes => {
                       const updated = await updateSubtask(id, subtask.id, changes)
                       setSubtasks(current => current.map(task => task.id === updated.id ? updated : task))
@@ -489,7 +491,8 @@ export function SubtaskActions({ onEdit, onDelete, onExecution, busy, deleting }
   </div>
 }
 
-export function SubtaskEditor({ subtask, eventDate, onSave, onCancel }) {
+export function SubtaskEditor({ subtask, eventDate, onSave, onCancel, focusDate = false }) {
+  useEffect(() => { if (focusDate) document.getElementById('edit-targetDate')?.focus() }, [focusDate])
   const [formData, setFormData] = useState({ title: subtask.title, targetDate: subtask.targetDate, estimatedHours: String(subtask.estimatedHours) })
   const [fieldErrors, setFieldErrors] = useState({})
   const [error, setError] = useState('')
@@ -519,6 +522,7 @@ export function SubtaskEditor({ subtask, eventDate, onSave, onCancel }) {
     setBusy(false)
   }
   return <>
+    {focusDate && <p className="reprogram-help" role="status">Elige una nueva fecha y confirma con Guardar cambios. Reprogramar no guarda automáticamente.</p>}
     <SubtaskForm editing formData={formData} referenceDate={getBogotaDate()} eventDate={eventDate}
       fieldErrors={fieldErrors} submitError={conflict ? '' : error} isSubmitting={busy}
       onChange={event => changeField(event.target.name, event.target.value)}

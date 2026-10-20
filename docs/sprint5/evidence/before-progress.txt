@@ -1,0 +1,1 @@
+<section class="event-progress" aria-label="Progreso de QA precisión"><div class="event-progress-heading"><h3>QA precisión</h3><strong>100 %</strong></div><p>19999 de 20000 gestiones completadas.</p><progress max="100" value="99.995" aria-label="Avance de QA precisión: 19999 de 20000 gestiones completadas"></progress></section>

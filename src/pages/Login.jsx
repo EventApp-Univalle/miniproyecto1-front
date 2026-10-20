@@ -35,12 +35,13 @@ export default function Login() {
 
   return (
     <AuthLayout title="Bienvenido de nuevo" description="Organiza y gestiona tus eventos en un solo lugar">
-        <form onSubmit={handleSubmit} className="login-form" noValidate>
+        <form onSubmit={handleSubmit} className="login-form" noValidate aria-busy={isSubmitting}>
           <div className="form-group">
-            <label htmlFor="email">Correo electrónico</label>
+            <label htmlFor="email">Correo electrónico *</label>
             <input
               id="email"
               type="email"
+              required
               autoComplete="username"
               disabled={isSubmitting}
               placeholder="tu.correo@ejemplo.com"
@@ -55,10 +56,11 @@ export default function Login() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Contraseña</label>
+            <label htmlFor="password">Contraseña *</label>
             <input
               id="password"
               type="password"
+              required
               autoComplete="current-password"
               disabled={isSubmitting}
               placeholder="••••••••"

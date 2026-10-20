@@ -4,7 +4,7 @@ import { Link } from 'react-router'
 import { getTodayTasks } from '../api'
 import { todaySections } from '../execution.utils'
 import { ExecutionSummary } from '../components/SubtaskExecutionEditor'
-import { subtaskReviewPath } from '../subtaskNavigation.utils'
+import { subtaskReviewPath, subtaskReprogramPath } from '../subtaskNavigation.utils'
 
 function formatTaskDate(date) {
   return new Date(`${date}T12:00:00Z`).toLocaleDateString('es-ES', {
@@ -29,6 +29,9 @@ export function TaskCard({ task }) {
         </div>
       </div>
       <div className="today-task-side">
+        {task.status !== 'DONE' && <Link to={subtaskReprogramPath(task)} className="btn-secondary" aria-label={`Reprogramar subtarea: ${task.title}`}>
+          <Icon name="calendar" />Reprogramar
+        </Link>}
         <Link to={subtaskReviewPath({ eventId: task.eventId, subtaskId: task.id })} className="btn-detail">
           Ver evento <Icon name="arrow" />
         </Link>

@@ -1,7 +1,12 @@
 import Icon from './Icon'
+import { useEffect, useRef } from 'react'
+import { focusFirstInvalid } from '../quality.utils'
 
 export default function EventForm({ formData, fieldErrors, submitError, isSubmitting,
-  onChange: handleChange, onSubmit: handleSubmit, referenceDate, submitLabel = 'Crear evento', onCancel }) {
+  onChange: handleChange, onSubmit: handleSubmit, referenceDate, submitLabel = 'Crear evento', onCancel, focusErrorVersion = 0 }) {
+  const form = useRef(null)
+  useEffect(() => { if (focusErrorVersion) focusFirstInvalid(form.current) }, [focusErrorVersion])
+  const errors = Object.entries(fieldErrors).filter(([, message]) => Boolean(message))
   const errorProps = (name) => ({
     'aria-invalid': Boolean(fieldErrors[name]),
     'aria-describedby': fieldErrors[name] ? `${name}-error` : undefined,
@@ -9,7 +14,7 @@ export default function EventForm({ formData, fieldErrors, submitError, isSubmit
 
   return (
       <div className="form-card-wrapper">
-        <form
+        <form ref={form}
           onSubmit={handleSubmit}
           className="minimal-form"
           aria-busy={isSubmitting}
@@ -21,6 +26,14 @@ export default function EventForm({ formData, fieldErrors, submitError, isSubmit
             </div>
           )}
 
+          {errors.length > 0 && <div className="feedback-banner feedback-error form-error-summary" role="alert">
+            <div><strong>Revisa {errors.length === 1 ? 'este campo' : 'los campos indicados'} para continuar:</strong>
+              <ul>{errors.map(([name, message]) => <li key={name}>
+                {['title', 'type', 'date', 'time', 'location', 'description', 'isPriority'].includes(name)
+                  ? <a href={`#${name}`} onClick={event => { event.preventDefault(); form.current?.elements.namedItem(name)?.focus() }}>{message}</a> : message}
+              </li>)}</ul>
+            </div>
+          </div>}
           <fieldset className="form-section">
             <legend><Icon name="events" />Información principal</legend>
             <div className="form-row">
@@ -95,10 +108,12 @@ export default function EventForm({ formData, fieldErrors, submitError, isSubmit
                   id="time"
                   name="time"
                   type="time"
+                  {...errorProps('time')}
                   value={formData.time}
                   onChange={handleChange}
                   disabled={isSubmitting}
                 />
+                {fieldErrors.time && <span id="time-error" className="field-error">{fieldErrors.time}</span>}
               </div>
             </div>
 
@@ -112,10 +127,12 @@ export default function EventForm({ formData, fieldErrors, submitError, isSubmit
                 name="location"
                 type="text"
                 placeholder="Ej: Auditorio principal"
+                {...errorProps('location')}
                 value={formData.location}
                 onChange={handleChange}
                 disabled={isSubmitting}
               />
+                {fieldErrors.location && <span id="location-error" className="field-error">{fieldErrors.location}</span>}
             </div>
 
             <div className="form-group">
@@ -125,10 +142,12 @@ export default function EventForm({ formData, fieldErrors, submitError, isSubmit
                 name="description"
                 rows="4"
                 placeholder="Información útil para organizar el evento"
+                {...errorProps('description')}
                 value={formData.description}
                 onChange={handleChange}
                 disabled={isSubmitting}
               />
+                {fieldErrors.description && <span id="description-error" className="field-error">{fieldErrors.description}</span>}
             </div>
 
           </fieldset>

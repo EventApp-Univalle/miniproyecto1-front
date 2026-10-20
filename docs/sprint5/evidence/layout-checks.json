@@ -1,0 +1,62 @@
+[
+  {
+    "page": "Hoy",
+    "overflow": false,
+    "unlabelled": 0,
+    "width": 360
+  },
+  {
+    "page": "Hoy",
+    "overflow": false,
+    "unlabelled": 0,
+    "width": 1440
+  },
+  {
+    "page": "Eventos",
+    "overflow": false,
+    "unlabelled": 0,
+    "width": 360
+  },
+  {
+    "page": "Eventos",
+    "overflow": false,
+    "unlabelled": 0,
+    "width": 1440
+  },
+  {
+    "page": "Progreso",
+    "overflow": false,
+    "unlabelled": 0,
+    "width": 360
+  },
+  {
+    "page": "Progreso",
+    "overflow": false,
+    "unlabelled": 0,
+    "width": 1440
+  },
+  {
+    "page": "Configuración",
+    "overflow": false,
+    "unlabelled": 0,
+    "width": 360
+  },
+  {
+    "page": "Configuración",
+    "overflow": false,
+    "unlabelled": 0,
+    "width": 1440
+  },
+  {
+    "page": "Crear evento",
+    "overflow": false,
+    "unlabelled": 0,
+    "width": 360
+  },
+  {
+    "page": "Crear evento",
+    "overflow": false,
+    "unlabelled": 0,
+    "width": 1440
+  }
+]

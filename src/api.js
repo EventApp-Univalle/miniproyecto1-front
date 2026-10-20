@@ -1,8 +1,10 @@
 import { getSession, expireSession } from './auth'
 
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
-).replace(/\/$/, '')
+import { resolveApiBaseUrl } from './apiEnvironment.utils'
+
+let baseUrl = ''
+try { baseUrl = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL, import.meta.env.PROD) } catch { /* Build validation prevents misconfigured deployments. */ }
+export const API_BASE_URL = baseUrl
 
 export class ApiError extends Error {
   constructor(message, { status = 0, code = 'NETWORK_ERROR', fields, details } = {}) {
@@ -17,6 +19,7 @@ export class ApiError extends Error {
 
 async function request(path, { expectedStatus, ...options } = {}) {
   let response
+  if (!API_BASE_URL) throw new ApiError('La conexión con la API no está configurada. Contacta al equipo de EventApp.', { code: 'CONFIGURATION_ERROR' })
   const session = await getSession()
   if (!session?.access_token) {
     expireSession()
