@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-19",
+  "scope": "Pruebas locales con mocks; lecturas públicas sin sesión válida. Sin escrituras remotas.",
+  "node": "22.23.3",
+  "npm": "10.9.9",
+  "tests": {
+    "frontend": {
+      "tests": 192,
+      "pass": 192,
+      "fail": 0,
+      "skipped": 0
+    },
+    "backend": {
+      "tests": 263,
+      "pass": 263,
+      "fail": 0,
+      "skipped": 0
+    }
+  },
+  "checks": {
+    "frontend_lint": "PASS",
+    "frontend_build": "PASS con VITE_API_BASE_URL=https://eventapp-univalle-backend.onrender.com",
+    "backend_node_check": "PASS en siete archivos JS",
+    "openapi_json": "PASS 3.0.3; diez paths; Render y localhost",
+    "diff_check_both": "PASS",
+    "dependencies_added": false,
+    "commits_created": false,
+    "push": false,
+    "remote_changes": false
+  },
+  "performance": {
+    "bundle_kB_before": 552.77,
+    "bundle_kB_after_total_approx": 556.06,
+    "largest_chunk_kB_after": 256.48,
+    "gzip_JS_kB_before": 156.34,
+    "gzip_JS_kB_after_approx": 158.83,
+    "claim": "Separación para caché; sin reducción del total ni mejora de latencia demostrada.",
+    "public_single_samples_seconds": {
+      "frontend_html": 0.392659,
+      "frontend_js": 0.408377,
+      "api_health": 0.277891,
+      "api_invalid_token_401": 8.486075
+    }
+  }
+}

@@ -1,6 +1,7 @@
 ﻿import { Routes, Route, Navigate } from 'react-router'
 import { useAuth } from './auth'
 import Navigation from './components/Navigation'
+import ApiDocumentationLink from './components/ApiDocumentationLink'
 import Login from './pages/Login'
 import Registro from './pages/Registro'
 import Hoy from './pages/Hoy'
@@ -20,7 +21,8 @@ function ProtectedRoute({ children }) {
 function App() {
   return (
     <div className="app-layout">
-      <main className="main-content">
+      <a className="skip-link" href="#main-content">Saltar al contenido</a>
+      <main className="main-content" id="main-content" tabIndex={-1}>
         <Routes>
           <Route path="/" element={<Navigate to="/hoy" replace />} />
           <Route path="/login" element={<Login />} />
@@ -33,6 +35,7 @@ function App() {
           <Route path="/configuracion" element={<ProtectedRoute><Configuracion /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/hoy" replace />} />
         </Routes>
+        <ApiDocumentationLink />
       </main>
       <Navigation />
     </div>

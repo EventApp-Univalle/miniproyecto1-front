@@ -9,6 +9,7 @@ export default function EventEditor({ event, onSave, onCancel }) {
   const [fieldErrors, setFieldErrors] = useState({})
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [focusErrorVersion, setFocusErrorVersion] = useState(0)
   const sending = useRef(false)
   function change(e) {
     const { name, type, checked, value } = e.target
@@ -20,18 +21,18 @@ export default function EventEditor({ event, onSave, onCancel }) {
     e.preventDefault()
     if (sending.current) return
     const errors = validateEventForm(formData, getBogotaDate(), event.date)
-    if (Object.keys(errors).length) { setFieldErrors(errors); return }
+    if (Object.keys(errors).length) { setFieldErrors(errors); setFocusErrorVersion(value => value + 1); return }
     const changes = eventChanges(formData, event)
     if (!Object.keys(changes).length) { setError('No hay cambios para guardar.'); return }
     sending.current = true
     setBusy(true)
     setError('')
     try { await onSave(changes) }
-    catch (err) { setError(err.message); if (err.fields) setFieldErrors(err.fields) }
+    catch (err) { setError(err.message); if (err.fields) { setFieldErrors(err.fields); setFocusErrorVersion(value => value + 1) } }
     finally { sending.current = false; setBusy(false) }
   }
   return <section className="event-editor" aria-label="Editar evento"><h2>Editar evento</h2>
     <EventForm formData={formData} fieldErrors={fieldErrors} submitError={error} isSubmitting={busy}
-      onChange={change} onSubmit={submit} referenceDate={getBogotaDate()} submitLabel="Guardar cambios" onCancel={onCancel} />
+      focusErrorVersion={focusErrorVersion} onChange={change} onSubmit={submit} referenceDate={getBogotaDate()} submitLabel="Guardar cambios" onCancel={onCancel} />
   </section>
 }

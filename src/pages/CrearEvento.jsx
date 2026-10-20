@@ -1,5 +1,5 @@
 import PageHeader from '../components/PageHeader'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { createEvent } from '../api'
 import EventForm from '../components/EventForm'
@@ -22,6 +22,8 @@ export default function CrearEvento() {
   const [fieldErrors, setFieldErrors] = useState({})
   const [submitError, setSubmitError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const sending = useRef(false)
+  const [focusErrorVersion, setFocusErrorVersion] = useState(0)
 
   const handleChange = (event) => {
     const { name, type, checked, value } = event.target
@@ -36,13 +38,16 @@ export default function CrearEvento() {
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+    if (sending.current) return
 
     const validationErrors = validateEventForm(formData)
     if (Object.keys(validationErrors).length > 0) {
       setFieldErrors(validationErrors)
+      setFocusErrorVersion(value => value + 1)
       return
     }
 
+    sending.current = true
     setIsSubmitting(true)
     setSubmitError('')
 
@@ -57,13 +62,15 @@ export default function CrearEvento() {
         isPriority: formData.isPriority,
       })
 
+      if (typeof createdEvent?.id !== 'string' || !createdEvent.id) throw new Error('No pudimos confirmar el evento. Consulta Eventos antes de volver a crearlo.')
       navigate(`/evento/${createdEvent.id}`, {
         state: { notice: 'Evento creado correctamente. Ahora agrega su plan.' },
       })
     } catch (error) {
-      if (error.fields) setFieldErrors(error.fields)
+      if (error.fields) { setFieldErrors(error.fields); setFocusErrorVersion(value => value + 1) }
       setSubmitError(error.message)
     } finally {
+      sending.current = false
       setIsSubmitting(false)
     }
   }
@@ -74,7 +81,7 @@ export default function CrearEvento() {
 
       <EventForm formData={formData} fieldErrors={fieldErrors} submitError={submitError}
         isSubmitting={isSubmitting} onChange={handleChange} onSubmit={handleSubmit}
-        referenceDate={getBogotaDate()} />
+        referenceDate={getBogotaDate()} focusErrorVersion={focusErrorVersion} />
     </div>
   )
 }

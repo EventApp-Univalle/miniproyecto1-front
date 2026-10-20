@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { formatProgressPercent } from '../quality.utils'
 import { requireEventProgress } from '../execution.utils'
 
 export default function EventProgress({ progress, loading = false, error = '', onRetry }) {
@@ -11,7 +12,7 @@ export default function EventProgress({ progress, loading = false, error = '', o
   </div>
   return <section className="event-progress" aria-label={`Progreso de ${value.eventTitle}`}>
     <div className="event-progress-heading"><h3>{value.eventTitle}</h3>
-      <strong>{new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 }).format(value.progressPercent)} %</strong></div>
+      <strong>{formatProgressPercent(value.progressPercent)} %</strong></div>
     <p>{value.doneCount} de {value.totalCount} gestiones completadas.</p>
     <progress max="100" value={value.progressPercent} aria-label={`Avance de ${value.eventTitle}: ${value.doneCount} de ${value.totalCount} gestiones completadas`} />
     {value.totalCount === 0 ? <p>Aún no hay subtareas. <Link to={`/evento/${encodeURIComponent(value.eventId)}`}>Añadir subtareas</Link></p>
